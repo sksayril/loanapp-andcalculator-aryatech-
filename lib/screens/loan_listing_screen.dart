@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:emi_calculatornew/services/loan_api_service.dart';
 import 'package:emi_calculatornew/providers/theme_provider.dart';
+import 'package:emi_calculatornew/services/ad_helper.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:provider/provider.dart';
 
 class LoanListingScreen extends StatefulWidget {
@@ -133,6 +135,69 @@ class _LoanListingScreenState extends State<LoanListingScreen> {
     await _fetchLoans();
   }
 
+  // Show rewarded ad first, then show confirmation dialog
+  Future<void> _showRewardedAdThenConfirmation(LoanData loan) async {
+    // Show loading indicator
+    if (!mounted) return;
+    
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    try {
+      // Load the rewarded ad
+      final rewardedAd = await AdHelper.loadRewardedAd();
+      
+      if (!mounted) return;
+      Navigator.of(context).pop(); // Close loading dialog
+
+      if (rewardedAd != null) {
+        // Show the rewarded ad
+        rewardedAd.fullScreenContentCallback = FullScreenContentCallback(
+          onAdDismissedFullScreenContent: (ad) {
+            ad.dispose();
+            // After ad is dismissed, show the confirmation dialog
+            if (mounted) {
+              _showApplyNowConfirmation(loan);
+            }
+          },
+          onAdFailedToShowFullScreenContent: (ad, error) {
+            print('Rewarded ad failed to show: $error');
+            ad.dispose();
+            // Show confirmation dialog even if ad fails to show
+            if (mounted) {
+              _showApplyNowConfirmation(loan);
+            }
+          },
+          onAdShowedFullScreenContent: (ad) {
+            print('Rewarded ad showed successfully');
+          },
+        );
+
+        // Show the ad with reward callback
+        rewardedAd.show(
+          onUserEarnedReward: (ad, reward) {
+            print('User earned reward: ${reward.amount} ${reward.type}');
+          },
+        );
+      } else {
+        // If ad failed to load, just show the confirmation dialog
+        if (mounted) {
+          _showApplyNowConfirmation(loan);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.of(context).pop(); // Close loading dialog if still open
+        _showApplyNowConfirmation(loan);
+      }
+    }
+  }
+
   void _showApplyNowConfirmation(LoanData loan) {
     final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
     showDialog(
@@ -223,7 +288,8 @@ class _LoanListingScreenState extends State<LoanListingScreen> {
             ElevatedButton(
               onPressed: () {
                 Navigator.of(context).pop(); // Close dialog
-                Navigator.of(context).pop(); // Close bottom sheet
+                Navigator.of(context).pop(); // Close bottom sheet if open
+                // Launch URL directly without showing ad again
                 _launchURL(loan.url);
               },
               style: ElevatedButton.styleFrom(
@@ -245,6 +311,62 @@ class _LoanListingScreenState extends State<LoanListingScreen> {
         );
       },
     );
+  }
+
+  Future<void> _showRewardedAdAndLaunchURL(String url) async {
+    // Show loading indicator
+    if (!mounted) return;
+    
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    try {
+      // Load the rewarded ad
+      final rewardedAd = await AdHelper.loadRewardedAd();
+      
+      if (!mounted) return;
+      Navigator.of(context).pop(); // Close loading dialog
+
+      if (rewardedAd != null) {
+        // Show the rewarded ad
+        rewardedAd.fullScreenContentCallback = FullScreenContentCallback(
+          onAdDismissedFullScreenContent: (ad) {
+            ad.dispose();
+            // Launch URL after ad is dismissed
+            _launchURL(url);
+          },
+          onAdFailedToShowFullScreenContent: (ad, error) {
+            print('Rewarded ad failed to show: $error');
+            ad.dispose();
+            // Launch URL even if ad fails to show
+            _launchURL(url);
+          },
+          onAdShowedFullScreenContent: (ad) {
+            print('Rewarded ad showed successfully');
+          },
+        );
+
+        // Show the ad with reward callback
+        rewardedAd.show(
+          onUserEarnedReward: (ad, reward) {
+            print('User earned reward: ${reward.amount} ${reward.type}');
+          },
+        );
+      } else {
+        // If ad failed to load, just launch the URL
+        _launchURL(url);
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.of(context).pop(); // Close loading dialog if still open
+        _launchURL(url);
+      }
+    }
   }
 
   Future<void> _launchURL(String url) async {
@@ -738,7 +860,7 @@ class _LoanListingScreenState extends State<LoanListingScreen> {
                         ),
                         child: ElevatedButton(
                           onPressed: () {
-                            _showApplyNowConfirmation(loan);
+                            _showRewardedAdThenConfirmation(loan);
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.transparent,

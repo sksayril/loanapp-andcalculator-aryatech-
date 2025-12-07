@@ -30,8 +30,14 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:emi_calculatornew/onboarding_screen.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize Mobile Ads SDK
+  await MobileAds.instance.initialize();
+  
   runApp(
     MultiProvider(
       providers: [
@@ -276,62 +282,79 @@ class _HomePageState extends State<HomePage> {
         },
         children: _screens,
       ),
-      bottomNavigationBar: SizedBox(
-        height: 90,
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            // Curved navigation bar with notch
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: ClipPath(
-                clipper: _CurvedBottomNavBarClipper(
-                  selectedIndex: _selectedIndex,
-                  itemCount: 4,
+      bottomNavigationBar: Container(
+        color: Colors.white,
+        child: SafeArea(
+          top: false,
+          child: SizedBox(
+            height: 90,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                // White background container to cover bottom area
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  child: Container(
+                    height: 100,
+                    color: Colors.white,
+                  ),
                 ),
-                child: Container(
-                  height: 76,
-                  decoration: BoxDecoration(
-                    color: themeProvider.cardBackground,
-                    border: Border.all(
-                      color: themeProvider.borderColor,
-                      width: 1,
+                // Curved navigation bar with notch
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  child: ClipPath(
+                    clipper: _CurvedBottomNavBarClipper(
+                      selectedIndex: _selectedIndex,
+                      itemCount: 4,
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
-                        blurRadius: 15,
-                        offset: const Offset(0, -3),
-                        spreadRadius: 0,
+                    child: Container(
+                      height: 76,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.08),
+                            blurRadius: 15,
+                            offset: const Offset(0, -3),
+                            spreadRadius: 0,
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        _buildNavItem(Icons.home_rounded, 'Home', 0),
-                        _buildNavItem(Icons.flash_on, 'Loans', 1),
-                        _buildNavItem(Icons.account_balance_wallet, 'Wallet', 2),
-                        _buildNavItem(Icons.person, 'Profile', 3),
-                      ],
+                      child: Padding(
+                        padding: const EdgeInsets.only(
+                          left: 20,
+                          right: 20,
+                          top: 6,
+                          bottom: 8,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            _buildNavItem(Icons.home_rounded, 'Home', 0),
+                            _buildNavItem(Icons.flash_on, 'Loans', 1),
+                            _buildNavItem(Icons.account_balance_wallet, 'Wallet', 2),
+                            _buildNavItem(Icons.person, 'Profile', 3),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ),
+                // Floating selected item with animation
+                AnimatedPositioned(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                  bottom: 30,
+                  left: _getSelectedItemPosition(),
+                  child: _buildFloatingSelectedItem(),
+                ),
+              ],
             ),
-            // Floating selected item with animation
-            AnimatedPositioned(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
-              bottom: 30,
-              left: _getSelectedItemPosition(),
-              child: _buildFloatingSelectedItem(),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -854,7 +877,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           const SizedBox(height: 24),
 
           // EMI Calculator Section
-          Padding(
+          Padding( 
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

@@ -5,6 +5,8 @@ import 'package:intl/intl.dart';
 import 'package:syncfusion_flutter_gauges/gauges.dart';
 import 'package:emi_calculatornew/providers/theme_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:emi_calculatornew/services/ad_helper.dart';
 
 class CibilScoreScreen extends StatefulWidget {
   const CibilScoreScreen({super.key});
@@ -30,11 +32,16 @@ class _CibilScoreScreenState extends State<CibilScoreScreen> with TickerProvider
   AnimationController? _loaderController;
   AnimationController? _scoreController;
   Animation<double>? _scoreAnimation;
+  
+  // Ad related variables
+  RewardedAd? _rewardedAd;
+  bool _isRewardedAdLoaded = false;
 
   @override
   void initState() {
     super.initState();
     _initializeControllers();
+    _loadRewardedAd();
   }
 
   void _initializeControllers() {
@@ -54,6 +61,162 @@ class _CibilScoreScreenState extends State<CibilScoreScreen> with TickerProvider
     }
   }
 
+  // Load Rewarded Ad
+  void _loadRewardedAd() async {
+    print('→ Starting to load rewarded ad...');
+    _rewardedAd = await AdHelper.loadRewardedAd();
+    
+    if (_rewardedAd != null && mounted) {
+      setState(() {
+        _isRewardedAdLoaded = true;
+      });
+      
+      print('✓ Rewarded ad is ready to show');
+      
+      // Set full screen content callback
+      _rewardedAd!.fullScreenContentCallback = FullScreenContentCallback(
+        onAdShowedFullScreenContent: (ad) {
+          print('Rewarded ad showed full screen content');
+        },
+        onAdDismissedFullScreenContent: (ad) {
+          print('Rewarded ad dismissed');
+          ad.dispose();
+          setState(() {
+            _isRewardedAdLoaded = false;
+          });
+          _loadRewardedAd(); // Load next ad
+        },
+        onAdFailedToShowFullScreenContent: (ad, error) {
+          print('✗ Rewarded ad failed to show: ${error.message}');
+          ad.dispose();
+          setState(() {
+            _isRewardedAdLoaded = false;
+          });
+          _loadRewardedAd(); // Load next ad
+        },
+        onAdImpression: (ad) {
+          print('Rewarded ad impression');
+        },
+      );
+    } else {
+      print('✗ Failed to load rewarded ad');
+      if (mounted) {
+        setState(() {
+          _isRewardedAdLoaded = false;
+        });
+      }
+    }
+  }
+
+  // Show Rewarded Ad and then check score
+  void _showRewardedAdAndCheckScore() async {
+    print('→ Attempting to show rewarded ad...');
+    print('  Ad loaded: $_isRewardedAdLoaded');
+    print('  Ad object: ${_rewardedAd != null}');
+    
+    if (_rewardedAd != null && _isRewardedAdLoaded) {
+      print('✓ Showing rewarded ad now');
+      try {
+        await _rewardedAd!.show(
+          onUserEarnedReward: (ad, reward) {
+            print('✓ User earned reward: ${reward.amount} ${reward.type}');
+            // Check score after user watches the ad
+            _performScoreCheck();
+          },
+        );
+      } catch (e) {
+        print('✗ Error showing rewarded ad: $e');
+        // If ad fails to show, check score anyway
+        _performScoreCheck();
+      }
+    } else {
+      print('⚠ Rewarded ad not ready, checking score without ad');
+      // If ad is not loaded, show loading dialog and try to load ad
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+      
+      // Try to load ad one more time
+      _rewardedAd = await AdHelper.loadRewardedAd();
+      
+      // Close loading dialog
+      if (mounted) Navigator.of(context).pop();
+      
+      if (_rewardedAd != null) {
+        print('✓ Ad loaded on retry, showing now');
+        try {
+          await _rewardedAd!.show(
+            onUserEarnedReward: (ad, reward) {
+              print('✓ User earned reward: ${reward.amount} ${reward.type}');
+              _performScoreCheck();
+            },
+          );
+          // Set callback for next time
+          _rewardedAd!.fullScreenContentCallback = FullScreenContentCallback(
+            onAdDismissedFullScreenContent: (ad) {
+              ad.dispose();
+              _loadRewardedAd();
+            },
+            onAdFailedToShowFullScreenContent: (ad, error) {
+              ad.dispose();
+              _loadRewardedAd();
+            },
+          );
+        } catch (e) {
+          print('✗ Error showing rewarded ad on retry: $e');
+          _performScoreCheck();
+        }
+      } else {
+        print('⚠ Could not load ad, proceeding without ad');
+        _performScoreCheck();
+      }
+    }
+  }
+
+  void _performScoreCheck() async {
+    setState(() {
+      _isLoading = true;
+      _showScore = false;
+      _showEligibility = false;
+      // Generate a random score between 650 and 850
+      _cibilScore = Random().nextInt(850 - 650 + 1) + 650;
+    });
+
+    // Ensure controllers are initialized
+    _initializeControllers();
+    
+    // Start loader animation
+    _loaderController?.reset();
+    _loaderController?.forward();
+
+    // Wait for 5 seconds
+    await Future.delayed(const Duration(seconds: 5));
+
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+        _showScore = true;
+      });
+      
+      // Animate score meter
+      _scoreController?.reset();
+      _scoreController?.forward();
+      
+      // Show eligibility after score animation
+      await Future.delayed(const Duration(milliseconds: 2500));
+      
+      if (mounted) {
+        setState(() {
+          _showEligibility = true;
+        });
+      }
+    }
+  }
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -63,48 +226,14 @@ class _CibilScoreScreenState extends State<CibilScoreScreen> with TickerProvider
     _dobController.dispose();
     _loaderController?.dispose();
     _scoreController?.dispose();
+    _rewardedAd?.dispose();
     super.dispose();
   }
 
-  void _checkCibilScore() async {
+  void _checkCibilScore() {
     if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isLoading = true;
-        _showScore = false;
-        _showEligibility = false;
-        // Generate a random score between 650 and 850
-        _cibilScore = Random().nextInt(850 - 650 + 1) + 650;
-      });
-
-      // Ensure controllers are initialized
-      _initializeControllers();
-      
-      // Start loader animation
-      _loaderController?.reset();
-      _loaderController?.forward();
-
-      // Wait for 5 seconds
-      await Future.delayed(const Duration(seconds: 5));
-
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-          _showScore = true;
-        });
-        
-        // Animate score meter
-        _scoreController?.reset();
-        _scoreController?.forward();
-        
-        // Show eligibility after score animation
-        await Future.delayed(const Duration(milliseconds: 2500));
-        
-        if (mounted) {
-          setState(() {
-            _showEligibility = true;
-          });
-        }
-      }
+      // Show rewarded ad before checking score
+      _showRewardedAdAndCheckScore();
     }
   }
 

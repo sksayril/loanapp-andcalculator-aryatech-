@@ -1,5 +1,7 @@
-package com.example.emi_calculatornew
+package com.aryatech.loantrix
 
 import io.flutter.embedding.android.FlutterActivity
 
 class MainActivity : FlutterActivity()
+
+
