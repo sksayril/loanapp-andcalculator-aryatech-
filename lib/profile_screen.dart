@@ -19,6 +19,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   String _userName = 'Miranda West';
   String _userHandle = '@mirandawest';
+  String _nickName = 'User'; // Default nickname
   
   // List of animal emojis
   static const List<String> _animalEmojis = [
@@ -44,10 +45,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _loadProfileData() async {
     final prefs = await SharedPreferences.getInstance();
     
-    // Load user name and handle
+    // Check if profile has been initialized before
+    final isProfileInitialized = prefs.getBool('profile_initialized') ?? false;
+    
+    if (!isProfileInitialized) {
+      // Set default profile values for first-time users
+      await prefs.setString('profile_user_name', 'Miranda West');
+      await prefs.setString('profile_nickname', 'User');
+      await prefs.setString('profile_user_handle', '@mirandawest');
+      await prefs.setBool('profile_initialized', true);
+    }
+    
+    // Load user name, handle, and nickname with defaults
     setState(() {
       _userName = prefs.getString('profile_user_name') ?? 'Miranda West';
       _userHandle = prefs.getString('profile_user_handle') ?? '@mirandawest';
+      _nickName = prefs.getString('profile_nickname') ?? 'User';
     });
     
     // Load animal emoji
@@ -169,7 +182,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ],
           ),
           const SizedBox(width: 16),
-          // Name and Username
+          // Name, Nickname, and Username
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -182,6 +195,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     color: Colors.white,
                   ),
                 ),
+                if (_nickName.isNotEmpty && _nickName != 'User') ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    _nickName,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.white.withOpacity(0.95),
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 4),
                 Text(
                   _userHandle,
@@ -443,6 +468,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _showEditProfileDialog() {
     final nameController = TextEditingController(text: _userName);
     final handleController = TextEditingController(text: _userHandle);
+    final nickNameController = TextEditingController(text: _nickName);
     String selectedEmoji = _animalEmoji;
     
     showDialog(
@@ -585,6 +611,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
+                    // Nickname Field
+                    Text(
+                      'Nickname',
+                      style: TextStyle(
+                        color: dialogThemeProvider.textPrimary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: nickNameController,
+                      style: TextStyle(color: dialogThemeProvider.textPrimary),
+                      decoration: InputDecoration(
+                        hintText: 'Enter your nickname',
+                        hintStyle: TextStyle(color: dialogThemeProvider.textSecondary),
+                        prefixIcon: const Icon(Icons.badge, size: 20),
+                        prefixIconColor: dialogThemeProvider.textSecondary,
+                        filled: true,
+                        fillColor: dialogThemeProvider.backgroundColor,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: dialogThemeProvider.borderColor),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: dialogThemeProvider.borderColor),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFF5DADE2), width: 2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                     // Handle Field
                     Text(
                       'Username (Handle)',
@@ -644,6 +705,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     
                     setState(() {
                       _userName = nameController.text.trim();
+                      _nickName = nickNameController.text.trim().isEmpty 
+                          ? 'User' 
+                          : nickNameController.text.trim();
                       _userHandle = handleController.text.trim().startsWith('@')
                           ? handleController.text.trim()
                           : '@${handleController.text.trim()}';
@@ -653,6 +717,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     // Save to local storage
                     final prefs = await SharedPreferences.getInstance();
                     await prefs.setString('profile_user_name', _userName);
+                    await prefs.setString('profile_nickname', _nickName);
                     await prefs.setString('profile_user_handle', _userHandle);
                     await prefs.setString('device_animal_emoji', selectedEmoji);
                     

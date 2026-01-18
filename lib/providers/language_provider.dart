@@ -55,7 +55,7 @@ class AppLocalizations {
   // English translations
   static const Map<String, Map<String, String>> _localizedValues = {
     'en': {
-      'app_name': 'Loan Trix',
+      'app_name': 'Loan King',
       'home': 'Home',
       'profile': 'Profile',
       'settings': 'Settings',
@@ -161,7 +161,7 @@ class AppLocalizations {
       'delete_all_calculations': 'Are you sure you want to delete all calculations?',
     },
     'hi': {
-      'app_name': 'Loan Trix',
+      'app_name': 'Loan King',
       'home': 'होम',
       'profile': 'प्रोफ़ाइल',
       'settings': 'सेटिंग्स',

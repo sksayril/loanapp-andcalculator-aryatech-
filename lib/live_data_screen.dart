@@ -3,6 +3,8 @@ import 'package:emi_calculatornew/services/loan_api_service.dart';
 import 'package:emi_calculatornew/screens/loan_listing_screen.dart';
 import 'package:emi_calculatornew/providers/theme_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:emi_calculatornew/services/ad_helper.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 class InstantLoanCategory {
   const InstantLoanCategory({
@@ -185,7 +187,7 @@ class _LiveDataScreenState extends State<LiveDataScreen> {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
         gradient: const LinearGradient(
-          colors: [Color(0xFF5DADE2), Color(0xFF85C1E9)],
+          colors: [Color(0xFF7C9CEE), Color(0xFF9EB7F5)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -248,108 +250,141 @@ class _LiveDataScreenState extends State<LiveDataScreen> {
         crossAxisCount: 2,
         crossAxisSpacing: 14,
         mainAxisSpacing: 14,
-        childAspectRatio: 0.95,
+        childAspectRatio: 0.85,
       ),
       itemCount: _categories.length,
       itemBuilder: (context, index) {
         final category = _categories[index];
-        final isSelected = index == _highlightedIndex;
         return InkWell(
-          borderRadius: BorderRadius.circular(22),
+          borderRadius: BorderRadius.circular(20),
           onTap: () {
             setState(() => _highlightedIndex = index);
-            _navigateToLoanListing(category);
+            _showRewardedAdConfirmationDialog(category);
           },
-          child:           AnimatedContainer(
-            duration: const Duration(milliseconds: 220),
-            padding: const EdgeInsets.all(18),
+          child: Container(
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(22),
-              color: Provider.of<ThemeProvider>(context).cardBackground,
-              border: Border.all(
-                color: isSelected
-                    ? category.color
-                    : Provider.of<ThemeProvider>(context).borderColor,
-                width: 1.4,
-              ),
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: isSelected
-                      ? category.color.withOpacity(0.25)
-                      : Provider.of<ThemeProvider>(context).borderColor,
-                  blurRadius: isSelected ? 18 : 8,
-                  offset: const Offset(0, 6),
+                  color: Colors.black.withOpacity(0.06),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                _buildEmojiBadge(category.emoji, category.color),
-                const SizedBox(height: 14),
-                Text(
-                  category.title,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: Provider.of<ThemeProvider>(context).textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  category.subtitle,
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    color: Provider.of<ThemeProvider>(context).textSecondary,
-                    height: 1.3,
-                  ),
-                ),
-                const Spacer(),
+                // "Get Upto" header with emoji
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
-                      Icons.bolt,
-                      color: category.color,
-                      size: 18,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Check offers',
-                      style: TextStyle(
-                        color: category.color,
-                        fontWeight: FontWeight.w600,
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEDE7F6),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        category.emoji,
+                        style: const TextStyle(fontSize: 18),
                       ),
                     ),
-                    const Spacer(),
-                    Icon(
-                      Icons.arrow_forward_ios,
-                      size: 14,
-                      color: category.color,
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Get Upto',
+                      style: TextStyle(
+                        color: Color(0xFF757575),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ],
+                ),
+                
+                // Loan Title in purple
+                Text(
+                  category.title,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF7C4DFF),
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+                
+                // Subtitle badge with purple background
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEDE7F6),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    category.subtitle,
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFF7C4DFF),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                
+                // Purple gradient button with arrow
+                Container(
+                  width: double.infinity,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [
+                        Color(0xFF9575CD),
+                        Color(0xFF7C4DFF),
+                      ],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF7C4DFF).withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF5E35B1).withOpacity(0.3),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.arrow_forward,
+                        color: Colors.white,
+                        size: 22,
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
           ),
         );
       },
-    );
-  }
-
-  Widget _buildEmojiBadge(String emoji, Color color) {
-    return Container(
-      width: 48,
-      height: 48,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: color.withOpacity(0.14),
-        border: Border.all(color: color.withOpacity(0.6), width: 1.2),
-      ),
-      alignment: Alignment.center,
-      child: Text(
-        emoji,
-        style: const TextStyle(fontSize: 24),
-      ),
     );
   }
 
@@ -361,7 +396,7 @@ class _LiveDataScreenState extends State<LiveDataScreen> {
           width: 3,
           height: 16,
           decoration: BoxDecoration(
-            color: const Color(0xFF5DADE2),
+            color: const Color(0xFF7C4DFF),
             borderRadius: BorderRadius.circular(2),
           ),
         ),
@@ -377,6 +412,187 @@ class _LiveDataScreenState extends State<LiveDataScreen> {
         ),
       ],
     );
+  }
+
+  // Show confirmation dialog before rewarded ad
+  Future<void> _showRewardedAdConfirmationDialog(InstantLoanCategory category) async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          contentPadding: const EdgeInsets.all(24),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Gift icon
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade100,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(
+                  Icons.card_giftcard,
+                  size: 50,
+                  color: Colors.orange.shade700,
+                ),
+              ),
+              const SizedBox(height: 20),
+              // Title
+              const Text(
+                'Unlock Premium Features',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              // Body text
+              Text(
+                'Watch a short video to continue using the free version.',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey.shade700,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              // Watch Video button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(); // Close dialog
+                    _showRewardedAdAndNavigate(category);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 2,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.play_arrow,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Watch Video',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              // No Thanks button
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(); // Close dialog
+                  },
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(
+                    'No, Thanks',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // Show rewarded ad and then navigate to loan listing
+  Future<void> _showRewardedAdAndNavigate(InstantLoanCategory category) async {
+    if (!mounted) return;
+    
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    try {
+      // Load the rewarded ad
+      final rewardedAd = await AdHelper.loadRewardedAd();
+      
+      if (!mounted) return;
+      Navigator.of(context).pop(); // Close loading dialog
+
+      if (rewardedAd != null) {
+        // Show the rewarded ad
+        rewardedAd.fullScreenContentCallback = FullScreenContentCallback(
+          onAdDismissedFullScreenContent: (ad) {
+            ad.dispose();
+            // After ad is dismissed, navigate to loan listing
+            if (mounted) {
+              _navigateToLoanListing(category);
+            }
+          },
+          onAdFailedToShowFullScreenContent: (ad, error) {
+            print('Rewarded ad failed to show: $error');
+            ad.dispose();
+            // Navigate to loan listing even if ad fails to show
+            if (mounted) {
+              _navigateToLoanListing(category);
+            }
+          },
+          onAdShowedFullScreenContent: (ad) {
+            print('Rewarded ad showed successfully');
+          },
+        );
+
+        // Show the ad with reward callback
+        rewardedAd.show(
+          onUserEarnedReward: (ad, reward) {
+            print('User earned reward: ${reward.amount} ${reward.type}');
+          },
+        );
+      } else {
+        // If ad failed to load, just navigate to loan listing
+        if (mounted) {
+          _navigateToLoanListing(category);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.of(context).pop(); // Close loading dialog if still open
+        _navigateToLoanListing(category);
+      }
+    }
   }
 
   void _navigateToLoanListing(InstantLoanCategory category) {
@@ -400,7 +616,7 @@ class _LiveDataScreenState extends State<LiveDataScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF5DADE2)),
+            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF7C4DFF)),
           ),
           const SizedBox(height: 16),
           Text(
@@ -452,7 +668,7 @@ class _LiveDataScreenState extends State<LiveDataScreen> {
               icon: const Icon(Icons.refresh),
               label: const Text('Retry'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Color(0xFF5DADE2),
+                backgroundColor: Color(0xFF7C4DFF),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 24,
@@ -469,4 +685,5 @@ class _LiveDataScreenState extends State<LiveDataScreen> {
     );
   }
 }
+
 

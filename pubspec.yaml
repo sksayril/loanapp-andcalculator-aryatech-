@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.3+4
+version: 1.0.1+2
 
 environment:
   sdk: ^3.9.2
@@ -111,9 +111,8 @@ flutter:
 flutter_launcher_icons:
   android: true
   ios: false
-  image_path: "assets/notesimages/logo2_padded.jpeg" # Using padded version to prevent cropping
+  image_path: "assets/notesimages/loankinglogo.jpeg" # Loan King logo
   min_sdk_android: 21 # android min sdk min:16, default 21
-  adaptive_icon_background: "#ffffff" # android adaptive icon background color
-  adaptive_icon_foreground: "assets/notesimages/logo2_padded.jpeg" # Using padded version for adaptive icon
-  remove_alpha_android: true # removes alpha channel for better compatibility
-  # Note: Padded logo ensures the logo fits within the adaptive icon safe zone (center 66%)
+  adaptive_icon_background: "#6A1B9A" # Purple background matching app theme
+  adaptive_icon_foreground: "assets/notesimages/loankinglogo_icon.png" # Properly sized logo (60% size, fits in safe zone)
+  remove_alpha_android: false # Keep alpha channel for proper transparency

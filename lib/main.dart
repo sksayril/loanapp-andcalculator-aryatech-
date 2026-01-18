@@ -30,7 +30,9 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:emi_calculatornew/onboarding_screen.dart';
+import 'package:emi_calculatornew/screens/profile_setup_screen.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:emi_calculatornew/services/ad_helper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -58,6 +60,7 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   bool _showOnboarding = true;
+  bool _showProfileSetup = false;
   bool _isLoadingPrefs = true;
 
   @override
@@ -68,10 +71,13 @@ class _MyAppState extends State<MyApp> {
 
   Future<void> _checkOnboardingStatus() async {
     final prefs = await SharedPreferences.getInstance();
-    final completed = prefs.getBool('onboarding_completed') ?? false;
+    final onboardingCompleted = prefs.getBool('onboarding_completed') ?? false;
+    final profileSetupCompleted = prefs.getBool('profile_setup_completed') ?? false;
+    
     if (mounted) {
       setState(() {
-        _showOnboarding = !completed;
+        _showOnboarding = !onboardingCompleted;
+        _showProfileSetup = onboardingCompleted && !profileSetupCompleted;
         _isLoadingPrefs = false;
       });
     }
@@ -87,7 +93,7 @@ class _MyAppState extends State<MyApp> {
     }
 
     return MaterialApp(
-      title: 'Loan Trix',
+      title: 'Loan King',
       debugShowCheckedModeBanner: false,
       theme: themeProvider.lightTheme,
       darkTheme: themeProvider.darkTheme,
@@ -104,7 +110,7 @@ class _MyAppState extends State<MyApp> {
         Locale('en', ''),
         Locale('hi', ''),
       ],
-      home: _showOnboarding ? const OnboardingScreen() : const SplashScreen(),
+      home: const SplashScreen(), // Always start with splash screen
     );
   }
 }
@@ -127,11 +133,15 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     _pageController = PageController(initialPage: _selectedIndex);
     _screens = [
+      // Index 0: Home - All calculators and tools
       HomeScreen(
         onInstantLoanTap: () => _onItemTapped(1),
       ),
+      // Index 1: Loans - All loan categories (Personal, Home, Car, Education, etc.)
       const LiveDataScreen(),
+      // Index 2: Wallet - Cash counter and calculations
       const CashCalculatorScreen(),
+      // Index 3: Profile - User profile settings
       const ProfileScreen(),
     ];
   }
@@ -173,6 +183,12 @@ class _HomePageState extends State<HomePage> {
   // Helper method to navigate directly to a specific page
   void navigateToPage(int index) {
     _onItemTapped(index);
+  }
+
+  // Convert screen index to bottom nav index (Wallet at index 2 is not in bottom nav)
+  int _getBottomNavIndex(int screenIndex) {
+    if (screenIndex == 3) return 2; // Profile (screen index 3) -> bottom nav index 2
+    return screenIndex; // Home (0) and Loans (1) map directly
   }
 
   Widget _buildToolbarIcon({
@@ -227,7 +243,7 @@ class _HomePageState extends State<HomePage> {
               children: [
                 // Logo
                 Image.asset(
-                  'assets/notesimages/logo.jpeg',
+                  'assets/notesimages/loankinglogo.jpeg',
                   height: 48,
                   width: 48,
                   fit: BoxFit.contain,
@@ -235,7 +251,7 @@ class _HomePageState extends State<HomePage> {
                 const SizedBox(width: 12),
                 // App Name
                 Text(
-                  localizations?.appName ?? 'Loan Trix',
+                  localizations?.appName ?? 'Loan King',
                   style: TextStyle(
                     color: themeProvider.textPrimary,
                     fontSize: 18,
@@ -265,7 +281,7 @@ class _HomePageState extends State<HomePage> {
             icon: Icons.person_outline,
             tooltip: 'Profile',
             onTap: () {
-              _onItemTapped(3);
+              _onItemTapped(3); // Navigate to Profile
             },
           ),
           const SizedBox(width: 12),
@@ -308,8 +324,8 @@ class _HomePageState extends State<HomePage> {
                   right: 0,
                   child: ClipPath(
                     clipper: _CurvedBottomNavBarClipper(
-                      selectedIndex: _selectedIndex,
-                      itemCount: 4,
+                      selectedIndex: _getBottomNavIndex(_selectedIndex),
+                      itemCount: 3,
                     ),
                     child: Container(
                       height: 76,
@@ -334,9 +350,11 @@ class _HomePageState extends State<HomePage> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: [
+                            // Home - All calculators, CIBIL check, tools
                             _buildNavItem(Icons.home_rounded, 'Home', 0),
+                            // Loans - Personal, Home, Car, Education loans, etc.
                             _buildNavItem(Icons.flash_on, 'Loans', 1),
-                            _buildNavItem(Icons.account_balance_wallet, 'Wallet', 2),
+                            // Profile - User settings and profile
                             _buildNavItem(Icons.person, 'Profile', 3),
                           ],
                         ),
@@ -402,7 +420,7 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
           ListTile(
-            leading: const Icon(Icons.home, color: Color(0xFF5DADE2)),
+            leading: const Icon(Icons.home_rounded, color: Color(0xFF5DADE2)),
             title: const Text('Home'),
             onTap: () {
               Navigator.pop(context);
@@ -410,17 +428,21 @@ class _HomePageState extends State<HomePage> {
             },
           ),
           ListTile(
-            leading: const Icon(Icons.calculate, color: Color(0xFF5DADE2)),
-            title: const Text('Loan APP'),
+            leading: const Icon(Icons.flash_on, color: Color(0xFF5DADE2)),
+            title: const Text('Loans'),
+            subtitle: const Text('Personal, Home, Car & More'),
             onTap: () {
               Navigator.pop(context);
+              _onItemTapped(1); // Navigate to Loans
             },
           ),
           ListTile(
-            leading: const Icon(Icons.history, color: Color(0xFF5DADE2)),
-            title: const Text('Loan History'),
+            leading: const Icon(Icons.account_balance_wallet, color: Color(0xFF5DADE2)),
+            title: const Text('Wallet'),
+            subtitle: const Text('Cash Counter'),
             onTap: () {
               Navigator.pop(context);
+              _onItemTapped(2); // Navigate to Wallet
             },
           ),
           ListTile(
@@ -428,7 +450,7 @@ class _HomePageState extends State<HomePage> {
             title: const Text('Profile'),
             onTap: () {
               Navigator.pop(context);
-              _onItemTapped(3); // Navigate to Profile (index 3)
+              _onItemTapped(3); // Navigate to Profile
             },
           ),
           const Divider(),
@@ -457,21 +479,26 @@ class _HomePageState extends State<HomePage> {
     final screenWidth = MediaQuery.of(context).size.width;
     final padding = 20.0;
     final availableWidth = screenWidth - (padding * 2);
-    final itemWidth = availableWidth / 4;
+    final bottomNavIndex = _getBottomNavIndex(_selectedIndex);
+    final itemWidth = availableWidth / 3; // 3 items in bottom nav
     final circleWidth = 56.0; // Width of floating circle
     
-    return padding + (itemWidth * _selectedIndex) + (itemWidth / 2) - (circleWidth / 2);
+    return padding + (itemWidth * bottomNavIndex) + (itemWidth / 2) - (circleWidth / 2);
   }
 
   // Build floating selected item
   Widget _buildFloatingSelectedItem() {
+    // Only show floating item for bottom nav items (Home, Loans, Profile)
+    if (_selectedIndex == 2) {
+      return const SizedBox.shrink(); // Hide for Wallet (not in bottom nav)
+    }
     final icon = _getIconForIndex(_selectedIndex);
     final label = _getLabelForIndex(_selectedIndex);
     final floatingThemeProvider = Provider.of<ThemeProvider>(context);
-    // Use brand color in light mode, lighter blue in dark mode for better visibility
+    // Use purple color in light mode, lighter purple in dark mode for better visibility
     final labelColor = floatingThemeProvider.isDarkMode 
-        ? const Color(0xFF7BC4E8) // Lighter blue for dark mode
-        : const Color(0xFF5DADE2); // Original blue for light mode
+        ? const Color(0xFFB39DDB) // Lighter purple for dark mode
+        : const Color(0xFF7C4DFF); // Deep purple for light mode
     
     return GestureDetector(
       onTap: () => _onItemTapped(_selectedIndex),
@@ -487,8 +514,8 @@ class _HomePageState extends State<HomePage> {
                 shape: BoxShape.circle,
                 gradient: LinearGradient(
                   colors: [
-                    const Color(0xFF5DADE2),
-                    const Color(0xFF4A9FD8),
+                    const Color(0xFFB39DDB), // Light purple/lavender
+                    const Color(0xFF9575CD), // Medium purple
                   ],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
@@ -500,7 +527,7 @@ class _HomePageState extends State<HomePage> {
                 boxShadow: [
                   // Outer shadow for depth
                   BoxShadow(
-                    color: const Color(0xFF5DADE2).withOpacity(0.4),
+                    color: const Color(0xFF9575CD).withOpacity(0.4),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                     spreadRadius: 2,
@@ -517,7 +544,7 @@ class _HomePageState extends State<HomePage> {
               alignment: Alignment.center,
               child: Icon(
                 icon,
-                color: Colors.white,
+                color: const Color(0xFF5E35B1), // Deep purple icon color
                 size: 26,
               ),
             ),
@@ -545,7 +572,7 @@ class _HomePageState extends State<HomePage> {
       case 1:
         return Icons.flash_on;
       case 2:
-        return Icons.account_balance_wallet;
+        return Icons.account_balance_wallet; // Wallet (accessible via top bar)
       case 3:
         return Icons.person;
       default:
@@ -556,13 +583,13 @@ class _HomePageState extends State<HomePage> {
   String _getLabelForIndex(int index) {
     switch (index) {
       case 0:
-        return 'Home';
+        return 'Home'; // All calculators and tools
       case 1:
-        return 'Loans';
+        return 'Loans'; // All loan types (Personal, Home, Car, etc.)
       case 2:
-        return 'Wallet';
+        return 'Wallet'; // Cash counter (not in bottom nav, accessible via top bar)
       case 3:
-        return 'Profile';
+        return 'Profile'; // User profile
       default:
         return '';
     }
@@ -571,6 +598,9 @@ class _HomePageState extends State<HomePage> {
   Widget _buildNavItem(IconData icon, String label, int index) {
     final bool isSelected = _selectedIndex == index;
     final navThemeProvider = Provider.of<ThemeProvider>(context);
+    
+    // Only show items that are in bottom nav (Home, Loans, Profile)
+    // Wallet (index 2) is not shown in bottom nav
 
     return Expanded(
       child: GestureDetector(
@@ -589,7 +619,9 @@ class _HomePageState extends State<HomePage> {
               if (!isSelected) ...[
                 Icon(
                   icon,
-                  color: navThemeProvider.textSecondary,
+                  color: navThemeProvider.isDarkMode 
+                      ? navThemeProvider.textSecondary 
+                      : const Color(0xFF9E9E9E), // Gray for unselected icons
                   size: 22,
                 ),
                 const SizedBox(height: 1),
@@ -599,7 +631,9 @@ class _HomePageState extends State<HomePage> {
                 Text(
                   label,
                   style: TextStyle(
-                    color: navThemeProvider.textSecondary,
+                    color: navThemeProvider.isDarkMode 
+                        ? navThemeProvider.textSecondary 
+                        : const Color(0xFF9E9E9E), // Gray for unselected labels
                     fontSize: 9,
                     fontWeight: FontWeight.w400,
                   ),
@@ -694,6 +728,199 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     super.dispose();
   }
 
+  // Show confirmation dialog before rewarded ad
+  Future<void> _showRewardedAdConfirmationDialogForCibil() async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          contentPadding: const EdgeInsets.all(24),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Gift icon
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade100,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(
+                  Icons.card_giftcard,
+                  size: 50,
+                  color: Colors.orange.shade700,
+                ),
+              ),
+              const SizedBox(height: 20),
+              // Title
+              const Text(
+                'Unlock Premium Features',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              // Body text
+              Text(
+                'Watch a short video to continue using the free version.',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey.shade700,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              // Watch Video button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(); // Close dialog
+                    _showRewardedAdAndNavigateToCibil();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 2,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.play_arrow,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Watch Video',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              // No Thanks button
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(); // Close dialog
+                  },
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(
+                    'No, Thanks',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // Show rewarded ad and then navigate to CIBIL score screen
+  Future<void> _showRewardedAdAndNavigateToCibil() async {
+    if (!mounted) return;
+    
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    try {
+      // Load the rewarded ad
+      final rewardedAd = await AdHelper.loadRewardedAd();
+      
+      if (!mounted) return;
+      Navigator.of(context).pop(); // Close loading dialog
+
+      if (rewardedAd != null) {
+        // Show the rewarded ad
+        rewardedAd.fullScreenContentCallback = FullScreenContentCallback(
+          onAdDismissedFullScreenContent: (ad) {
+            ad.dispose();
+            // After ad is dismissed, navigate to CIBIL screen
+            if (mounted) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const CibilScoreScreen()),
+              );
+            }
+          },
+          onAdFailedToShowFullScreenContent: (ad, error) {
+            print('Rewarded ad failed to show: $error');
+            ad.dispose();
+            // Navigate to CIBIL screen even if ad fails to show
+            if (mounted) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const CibilScoreScreen()),
+              );
+            }
+          },
+          onAdShowedFullScreenContent: (ad) {
+            print('Rewarded ad showed successfully');
+          },
+        );
+
+        // Show the ad with reward callback
+        rewardedAd.show(
+          onUserEarnedReward: (ad, reward) {
+            print('User earned reward: ${reward.amount} ${reward.type}');
+          },
+        );
+      } else {
+        // If ad failed to load, just navigate to CIBIL screen
+        if (mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const CibilScoreScreen()),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.of(context).pop(); // Close loading dialog if still open
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const CibilScoreScreen()),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final themeProvider = ThemeProvider.of(context);
@@ -706,17 +933,26 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           Padding(
             padding: const EdgeInsets.all(16),
             child: GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const CibilScoreScreen()),
-                );
-              },
+              onTap: _showRewardedAdConfirmationDialogForCibil,
               child: Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF2C3E50), // Changed to solid color
+                  gradient: const LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: [
+                      Color(0xFF20B2AA), // Teal-green on the left (exact match)
+                      Color(0xFF1E3A5F), // Darker blue on the right (exact match)
+                    ],
+                  ),
                   borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -724,52 +960,67 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Row( // Added Row for title and arrow
-                            children: [
-                              Consumer<LanguageProvider>(
-                                builder: (context, languageProvider, _) {
-                                  final localizations = lang.AppLocalizations.of(context);
-                                  return Text(
-                                    localizations?.cibilScoreCheck ?? 'CIBIL Score Check',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  );
-                                },
-                              ),
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.15),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: const Icon(
-                                  Icons.arrow_forward_ios,
-                                  color: Colors.white,
-                                  size: 10,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
                           Consumer<LanguageProvider>(
                             builder: (context, languageProvider, _) {
                               final localizations = lang.AppLocalizations.of(context);
                               return Text(
-                                localizations?.checkCreditScore ?? 'Check your credit score instantly ',
+                                'Check Your CIBIL Score',
                                 style: const TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 12,
+                                  color: Colors.white,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.5,
                                 ),
                               );
                             },
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'Instantly check your credit score!',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 12,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF4CAF50), // Bright green button
+                              borderRadius: BorderRadius.circular(25),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF4CAF50).withOpacity(0.3),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'Check Now',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                SizedBox(width: 6),
+                                Icon(
+                                  Icons.arrow_forward,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
@@ -835,10 +1086,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       child: _buildAnimatedLoanCard(
                         0,
                         '1 Lakh Loan',
-                        Colors.pink.shade400,
-                        Colors.pink.shade600,
+                        Icons.account_balance_wallet,
                         '₹1,00,000',
-                        'assets/lottiegif/Fake3Dvectorcoin.json',
                         widget.onInstantLoanTap,
                       ),
                     ),
@@ -848,10 +1097,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       child: _buildAnimatedLoanCard(
                         1,
                         '5 Lakh Loan',
-                        Colors.deepOrange.shade400,
-                        Colors.deepOrange.shade600,
+                        Icons.home,
                         '₹5,00,000',
-                        'assets/lottiegif/Fake3Dvectorcoin.json',
                         widget.onInstantLoanTap,
                       ),
                     ),
@@ -861,10 +1108,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       child: _buildAnimatedLoanCard(
                         2,
                         '10 Lakh Loan',
-                        Colors.blue.shade400,
-                        Colors.blue.shade600,
+                        Icons.directions_car,
                         '₹10,00,000',
-                        'assets/lottiegif/Fake3Dvectorcoin.json',
                         widget.onInstantLoanTap,
                       ),
                     ),
@@ -1429,10 +1674,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Widget _buildAnimatedLoanCard(
     int index,
     String title,
-    Color primaryColor,
-    Color secondaryColor,
+    IconData icon,
     String amountRange,
-    String lottieAsset,
     VoidCallback onTap,
   ) {
     return FadeTransition(
@@ -1443,10 +1686,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           scale: _scaleAnimations[index],
           child: _LoanProfileCard(
             title: title,
-            primaryColor: primaryColor,
-            secondaryColor: secondaryColor,
+            icon: icon,
             amountRange: amountRange,
-            lottieAsset: lottieAsset,
             onTap: onTap,
           ),
         ),
@@ -1637,18 +1878,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 // Enhanced Loan Profile Card with Interactive Animations
 class _LoanProfileCard extends StatefulWidget {
   final String title;
-  final Color primaryColor;
-  final Color secondaryColor;
+  final IconData icon;
   final String amountRange;
-  final String lottieAsset;
   final VoidCallback onTap;
 
   const _LoanProfileCard({
     required this.title,
-    required this.primaryColor,
-    required this.secondaryColor,
+    required this.icon,
     required this.amountRange,
-    required this.lottieAsset,
     required this.onTap,
   });
 
@@ -1711,35 +1948,27 @@ class _LoanProfileCardState extends State<_LoanProfileCard>
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
     final screenSize = MediaQuery.of(context).size;
     final screenWidth = screenSize.width;
-    final screenHeight = screenSize.height;
     
-    // More granular responsive sizing
+    // Responsive sizing
     final isVerySmallScreen = screenWidth < 320;
     final isSmallScreen = screenWidth < 400;
     final isMediumScreen = screenWidth < 600;
     
-    // Calculate card height based on screen size
-    double cardHeight;
-    if (isVerySmallScreen) {
-      cardHeight = screenHeight * 0.22; // 22% of screen height
-    } else if (isSmallScreen) {
-      cardHeight = screenHeight * 0.24; // 24% of screen height
-    } else if (isMediumScreen) {
-      cardHeight = 200.0;
-    } else {
-      cardHeight = 220.0;
-    }
+    // Card height - increased slightly to prevent overflow
+    double cardHeight = isVerySmallScreen ? 190.0 : (isSmallScreen ? 210.0 : 230.0);
     
-    // Ensure minimum and maximum heights
-    cardHeight = cardHeight.clamp(160.0, 250.0);
-    
-    // Responsive font and icon sizes
-    final iconSize = isVerySmallScreen ? 22.0 : (isSmallScreen ? 24.0 : (isMediumScreen ? 26.0 : 28.0));
-    final titleSize = isVerySmallScreen ? 12.0 : (isSmallScreen ? 13.0 : (isMediumScreen ? 14.0 : 15.0));
-    final amountSize = isVerySmallScreen ? 10.0 : (isSmallScreen ? 11.0 : (isMediumScreen ? 12.0 : 13.0));
+    // Responsive font and icon sizes - reduced to fit better
+    final iconSize = isVerySmallScreen ? 24.0 : (isSmallScreen ? 28.0 : 32.0);
+    final titleSize = isVerySmallScreen ? 13.0 : (isSmallScreen ? 15.0 : 17.0);
+    final amountSize = isVerySmallScreen ? 10.0 : (isSmallScreen ? 11.0 : 12.0);
     final padding = isVerySmallScreen ? 12.0 : (isSmallScreen ? 14.0 : 16.0);
+    
+    // Purple color for the theme
+    const purpleColor = Color(0xFF7C4DFF);
+    const lightPurple = Color(0xFFE1BEE7);
 
     return ScaleTransition(
       scale: _scaleAnimation,
@@ -1751,165 +1980,107 @@ class _LoanProfileCardState extends State<_LoanProfileCard>
           height: cardHeight,
           padding: EdgeInsets.all(padding),
           constraints: const BoxConstraints(
-            minHeight: 160,
+            minHeight: 180,
             maxHeight: 250,
           ),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                widget.primaryColor,
-                widget.secondaryColor,
-              ],
-            ),
-            borderRadius: BorderRadius.circular(18),
+            color: themeProvider.themeMode == ThemeMode.dark 
+                ? themeProvider.cardBackground 
+                : Colors.grey.shade50,
+            borderRadius: BorderRadius.circular(16),
+            border: themeProvider.themeMode == ThemeMode.dark
+                ? Border.all(color: themeProvider.borderColor)
+                : null,
             boxShadow: [
               BoxShadow(
-                color: widget.primaryColor.withOpacity(0.4),
-                blurRadius: 15,
-                offset: const Offset(0, 6),
-                spreadRadius: 0,
-              ),
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
                 spreadRadius: 0,
               ),
             ],
           ),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              // Icon with animated rotation and glow effect
-              RotationTransition(
-                turns: _iconRotationAnimation,
-                child: Container(
-                  padding: EdgeInsets.all(isVerySmallScreen ? 8 : (isSmallScreen ? 10 : 12)),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.white.withOpacity(0.3),
-                        blurRadius: 16,
-                        spreadRadius: 3,
+              // Icon at top left
+              Icon(
+                widget.icon,
+                color: purpleColor,
+                size: iconSize,
+              ),
+              
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(height: 8),
+                    // "Get Upto" text
+                    Text(
+                      'Get Upto',
+                      style: TextStyle(
+                        color: themeProvider.textSecondary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
                       ),
-                    ],
-                  ),
-                  child: SizedBox(
-                    height: iconSize + 10,
-                    width: iconSize + 10,
-                    child: Lottie.asset(
-                      widget.lottieAsset,
-                      fit: BoxFit.contain,
-                      repeat: true,
                     ),
-                  ),
+                    const SizedBox(height: 2),
+                    
+                    // Title in bold purple
+                    Text(
+                      widget.title,
+                      style: TextStyle(
+                        color: purpleColor,
+                        fontSize: titleSize,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 6),
+                    
+                    // Amount badge in light purple
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isVerySmallScreen ? 8 : 10,
+                        vertical: isVerySmallScreen ? 4 : 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: lightPurple,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        widget.amountRange,
+                        style: TextStyle(
+                          color: themeProvider.textPrimary,
+                          fontSize: amountSize,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               
-              // Title with subtle animation
-              AnimatedDefaultTextStyle(
-                duration: const Duration(milliseconds: 200),
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: titleSize,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.4,
-                  shadows: [
-                    Shadow(
-                      color: Colors.black.withOpacity(0.2),
-                      offset: const Offset(0, 1),
-                      blurRadius: 2,
-                    ),
-                  ],
+              const SizedBox(height: 8),
+              
+              // Purple action button with white arrow
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.symmetric(
+                  vertical: isVerySmallScreen ? 8 : 10,
                 ),
-                child: Text(
-                  widget.title,
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-
-              // Amount badge with enhanced styling
-              Flexible(
-                child: Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: isVerySmallScreen ? 6 : (isSmallScreen ? 8 : 10),
-                    vertical: isVerySmallScreen ? 4 : (isSmallScreen ? 5 : 6),
-                  ),
-                  constraints: const BoxConstraints(
-                    minWidth: 60,
-                  ),
-                  decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.6),
-                    width: 1.5,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.white.withOpacity(0.2),
-                      blurRadius: 8,
-                      spreadRadius: 0,
-                    ),
-                  ],
-                ),
-                  child: Text(
-                    widget.amountRange,
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: amountSize,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.6,
-                      shadows: [
-                        Shadow(
-                          color: Colors.black.withOpacity(0.15),
-                          offset: const Offset(0, 1),
-                          blurRadius: 2,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-
-              // Arrow button with enhanced design
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                width: isVerySmallScreen ? 32 : (isSmallScreen ? 36 : 40),
-                height: isVerySmallScreen ? 32 : (isSmallScreen ? 36 : 40),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: purpleColor,
                   borderRadius: BorderRadius.circular(10),
-                  boxShadow: [
-                    BoxShadow(
-                      color: widget.primaryColor.withOpacity(0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 3),
-                      spreadRadius: 0,
-                    ),
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 4,
-                      offset: const Offset(0, 1),
-                    ),
-                  ],
                 ),
-                child: RotationTransition(
-                  turns: _iconRotationAnimation,
-                  child: Icon(
+                child: Icon(
                   Icons.arrow_forward,
-                  color: widget.primaryColor,
-                  size: isVerySmallScreen ? 16 : (isSmallScreen ? 18 : 20),
-                  ),
+                  color: Colors.white,
+                  size: isVerySmallScreen ? 18 : 20,
                 ),
               ),
             ],
@@ -2100,3 +2271,4 @@ class _CurvedBottomNavBarClipper extends CustomClipper<Path> {
         oldClipper.selectedIndex != selectedIndex;
   }
 }
+

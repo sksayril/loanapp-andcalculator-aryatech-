@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'splash_screen.dart';
+import 'screens/profile_setup_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -19,17 +20,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
 
   final List<_OnboardingSlide> _slides = const [
     _OnboardingSlide(
-      imagePath: 'assets/notesimages/INTRO1.png',
+      imagePath: 'assets/notesimages/INTRO1.jpg',
       title: 'Start Your Loan Journey',
       subtitle: 'Get approved for your loan within minutes',
     ),
     _OnboardingSlide(
-      imagePath: 'assets/notesimages/INTRO2.png',
+      imagePath: 'assets/notesimages/INTRO2.jpg',
       title: 'Instant Cash',
       subtitle: 'Get the funds you need, when you need them',
     ),
     _OnboardingSlide(
-      imagePath: 'assets/notesimages/INTRO3.png',
+      imagePath: 'assets/notesimages/INTRO3.jpg',
       title: 'Quick Application',
       subtitle: 'Apply with basic details and get quick processing',
     ),
@@ -65,8 +66,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
     await prefs.setBool('onboarding_completed', true);
 
     if (!mounted) return;
+    // Navigate to profile setup screen after onboarding
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const SplashScreen()),
+      MaterialPageRoute(builder: (_) => const ProfileSetupScreen()),
     );
   }
 

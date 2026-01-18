@@ -135,6 +135,305 @@ class _LoanListingScreenState extends State<LoanListingScreen> {
     await _fetchLoans();
   }
 
+  // Show confirmation dialog before rewarded ad
+  Future<void> _showRewardedAdConfirmationDialog(LoanData loan) async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          contentPadding: const EdgeInsets.all(24),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Gift icon
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade100,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(
+                  Icons.card_giftcard,
+                  size: 50,
+                  color: Colors.orange.shade700,
+                ),
+              ),
+              const SizedBox(height: 20),
+              // Title
+              const Text(
+                'Unlock Premium Features',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              // Body text
+              Text(
+                'Watch a short video to continue using the free version.',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey.shade700,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              // Watch Video button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(); // Close dialog
+                    _showRewardedAdThenConfirmation(loan);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 2,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.play_arrow,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Watch Video',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              // No Thanks button
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(); // Close dialog
+                  },
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(
+                    'No, Thanks',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // Show confirmation dialog before rewarded ad for loan details
+  Future<void> _showRewardedAdConfirmationDialogForDetails(LoanData loan) async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          contentPadding: const EdgeInsets.all(24),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Gift icon
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade100,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(
+                  Icons.card_giftcard,
+                  size: 50,
+                  color: Colors.orange.shade700,
+                ),
+              ),
+              const SizedBox(height: 20),
+              // Title
+              const Text(
+                'Unlock Premium Features',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              // Body text
+              Text(
+                'Watch a short video to continue using the free version.',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey.shade700,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              // Watch Video button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(); // Close dialog
+                    _showRewardedAdAndShowDetails(loan);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 2,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.play_arrow,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Watch Video',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              // No Thanks button
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(); // Close dialog
+                  },
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(
+                    'No, Thanks',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // Show rewarded ad and then show loan details
+  Future<void> _showRewardedAdAndShowDetails(LoanData loan) async {
+    if (!mounted) return;
+    
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    try {
+      // Load the rewarded ad
+      final rewardedAd = await AdHelper.loadRewardedAd();
+      
+      if (!mounted) return;
+      Navigator.of(context).pop(); // Close loading dialog
+
+      if (rewardedAd != null) {
+        // Show the rewarded ad
+        rewardedAd.fullScreenContentCallback = FullScreenContentCallback(
+          onAdDismissedFullScreenContent: (ad) {
+            ad.dispose();
+            // After ad is dismissed, show loan details
+            if (mounted) {
+              _showLoanDetails(loan);
+            }
+          },
+          onAdFailedToShowFullScreenContent: (ad, error) {
+            print('Rewarded ad failed to show: $error');
+            ad.dispose();
+            // Show loan details even if ad fails to show
+            if (mounted) {
+              _showLoanDetails(loan);
+            }
+          },
+          onAdShowedFullScreenContent: (ad) {
+            print('Rewarded ad showed successfully');
+          },
+        );
+
+        // Show the ad with reward callback
+        rewardedAd.show(
+          onUserEarnedReward: (ad, reward) {
+            print('User earned reward: ${reward.amount} ${reward.type}');
+          },
+        );
+      } else {
+        // If ad failed to load, just show loan details
+        if (mounted) {
+          _showLoanDetails(loan);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.of(context).pop(); // Close loading dialog if still open
+        _showLoanDetails(loan);
+      }
+    }
+  }
+
   // Show rewarded ad first, then show confirmation dialog
   Future<void> _showRewardedAdThenConfirmation(LoanData loan) async {
     // Show loading indicator
@@ -308,6 +607,124 @@ class _LoanListingScreenState extends State<LoanListingScreen> {
               ),
             ),
           ],
+        );
+      },
+    );
+  }
+
+  // Show confirmation dialog before rewarded ad for URL launch
+  Future<void> _showRewardedAdConfirmationDialogForURL(String url) async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          contentPadding: const EdgeInsets.all(24),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Gift icon
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade100,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(
+                  Icons.card_giftcard,
+                  size: 50,
+                  color: Colors.orange.shade700,
+                ),
+              ),
+              const SizedBox(height: 20),
+              // Title
+              const Text(
+                'Unlock Premium Features',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              // Body text
+              Text(
+                'Watch a short video to continue using the free version.',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey.shade700,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              // Watch Video button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(); // Close dialog
+                    _showRewardedAdAndLaunchURL(url);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 2,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.play_arrow,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Watch Video',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              // No Thanks button
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(); // Close dialog
+                  },
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(
+                    'No, Thanks',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         );
       },
     );
@@ -660,7 +1077,7 @@ class _LoanListingScreenState extends State<LoanListingScreen> {
                       ],
                     ),
                     child: ElevatedButton(
-                      onPressed: () => _showLoanDetails(loan),
+                      onPressed: () => _showRewardedAdConfirmationDialogForDetails(loan),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.transparent,
                         shadowColor: Colors.transparent,
@@ -860,7 +1277,7 @@ class _LoanListingScreenState extends State<LoanListingScreen> {
                         ),
                         child: ElevatedButton(
                           onPressed: () {
-                            _showRewardedAdThenConfirmation(loan);
+                            _showRewardedAdConfirmationDialog(loan);
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.transparent,

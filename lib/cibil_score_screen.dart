@@ -36,12 +36,16 @@ class _CibilScoreScreenState extends State<CibilScoreScreen> with TickerProvider
   // Ad related variables
   RewardedAd? _rewardedAd;
   bool _isRewardedAdLoaded = false;
+  BannerAd? _bannerAd;
+  bool _isBannerAdLoaded = false;
+  bool _scoreCheckInProgress = false;
 
   @override
   void initState() {
     super.initState();
     _initializeControllers();
     _loadRewardedAd();
+    _loadBannerAd();
   }
 
   void _initializeControllers() {
@@ -108,37 +112,231 @@ class _CibilScoreScreenState extends State<CibilScoreScreen> with TickerProvider
     }
   }
 
+  // Load Banner Ad
+  void _loadBannerAd() {
+    print('→ Starting to load banner ad...');
+    _bannerAd = AdHelper.loadBannerAd(
+      onAdLoaded: (ad) {
+        print('✓ Banner ad loaded successfully');
+        if (mounted) {
+          setState(() {
+            _isBannerAdLoaded = true;
+          });
+        }
+      },
+      onAdFailedToLoad: (error) {
+        print('✗ Banner ad failed to load: ${error.message}');
+        print('  Code: ${error.code}, Domain: ${error.domain}');
+        if (mounted) {
+          setState(() {
+            _isBannerAdLoaded = false;
+          });
+        }
+      },
+      adSize: AdSize.banner,
+    );
+  }
+
+  // Show confirmation dialog before rewarded ad
+  Future<void> _showRewardedAdConfirmationDialog() async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          contentPadding: const EdgeInsets.all(24),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Gift icon
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade100,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(
+                  Icons.card_giftcard,
+                  size: 50,
+                  color: Colors.orange.shade700,
+                ),
+              ),
+              const SizedBox(height: 20),
+              // Title
+              const Text(
+                'Unlock Premium Features',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              // Body text
+              Text(
+                'Watch a short video to continue using the free version.',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey.shade700,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              // Watch Video button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(); // Close dialog
+                    _showRewardedAdAndCheckScore();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 2,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.play_arrow,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Watch Video',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              // No Thanks button
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(); // Close dialog
+                  },
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(
+                    'No, Thanks',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   // Show Rewarded Ad and then check score
   void _showRewardedAdAndCheckScore() async {
+    // Prevent multiple simultaneous score checks
+    if (_scoreCheckInProgress) {
+      print('⚠ Score check already in progress, ignoring request');
+      return;
+    }
+    
     print('→ Attempting to show rewarded ad...');
     print('  Ad loaded: $_isRewardedAdLoaded');
     print('  Ad object: ${_rewardedAd != null}');
     
     if (_rewardedAd != null && _isRewardedAdLoaded) {
       print('✓ Showing rewarded ad now');
+      
+      // Set up callback to handle ad dismissal
+      _rewardedAd!.fullScreenContentCallback = FullScreenContentCallback(
+        onAdShowedFullScreenContent: (ad) {
+          print('Rewarded ad showed full screen content');
+        },
+        onAdDismissedFullScreenContent: (ad) {
+          print('Rewarded ad dismissed');
+          ad.dispose();
+          setState(() {
+            _isRewardedAdLoaded = false;
+          });
+          // Check score after ad is dismissed (if not already triggered)
+          if (!_scoreCheckInProgress && mounted) {
+            _scoreCheckInProgress = true;
+            _performScoreCheck();
+          }
+          _loadRewardedAd(); // Load next ad
+        },
+        onAdFailedToShowFullScreenContent: (ad, error) {
+          print('✗ Rewarded ad failed to show: ${error.message}');
+          ad.dispose();
+          setState(() {
+            _isRewardedAdLoaded = false;
+          });
+          // Check score even if ad fails to show
+          if (!_scoreCheckInProgress && mounted) {
+            _scoreCheckInProgress = true;
+            _performScoreCheck();
+          }
+          _loadRewardedAd(); // Load next ad
+        },
+        onAdImpression: (ad) {
+          print('Rewarded ad impression');
+        },
+      );
+      
       try {
         await _rewardedAd!.show(
           onUserEarnedReward: (ad, reward) {
             print('✓ User earned reward: ${reward.amount} ${reward.type}');
             // Check score after user watches the ad
-            _performScoreCheck();
+            if (!_scoreCheckInProgress && mounted) {
+              _scoreCheckInProgress = true;
+              _performScoreCheck();
+            }
           },
         );
       } catch (e) {
         print('✗ Error showing rewarded ad: $e');
         // If ad fails to show, check score anyway
-        _performScoreCheck();
+        if (!_scoreCheckInProgress && mounted) {
+          _scoreCheckInProgress = true;
+          _performScoreCheck();
+        }
       }
     } else {
-      print('⚠ Rewarded ad not ready, checking score without ad');
+      print('⚠ Rewarded ad not ready, loading ad first...');
       // If ad is not loaded, show loading dialog and try to load ad
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const Center(
+            child: CircularProgressIndicator(),
+          ),
+        );
+      }
       
       // Try to load ad one more time
       _rewardedAd = await AdHelper.loadRewardedAd();
@@ -146,38 +344,80 @@ class _CibilScoreScreenState extends State<CibilScoreScreen> with TickerProvider
       // Close loading dialog
       if (mounted) Navigator.of(context).pop();
       
-      if (_rewardedAd != null) {
+      if (_rewardedAd != null && mounted) {
+        setState(() {
+          _isRewardedAdLoaded = true;
+        });
         print('✓ Ad loaded on retry, showing now');
+        
+        // Set up callback
+        _rewardedAd!.fullScreenContentCallback = FullScreenContentCallback(
+          onAdShowedFullScreenContent: (ad) {
+            print('Rewarded ad showed full screen content');
+          },
+          onAdDismissedFullScreenContent: (ad) {
+            print('Rewarded ad dismissed');
+            ad.dispose();
+            setState(() {
+              _isRewardedAdLoaded = false;
+            });
+            // Check score after ad is dismissed
+            if (!_scoreCheckInProgress && mounted) {
+              _scoreCheckInProgress = true;
+              _performScoreCheck();
+            }
+            _loadRewardedAd();
+          },
+          onAdFailedToShowFullScreenContent: (ad, error) {
+            print('✗ Rewarded ad failed to show: ${error.message}');
+            ad.dispose();
+            setState(() {
+              _isRewardedAdLoaded = false;
+            });
+            // Check score even if ad fails
+            if (!_scoreCheckInProgress && mounted) {
+              _scoreCheckInProgress = true;
+              _performScoreCheck();
+            }
+            _loadRewardedAd();
+          },
+          onAdImpression: (ad) {
+            print('Rewarded ad impression');
+          },
+        );
+        
         try {
           await _rewardedAd!.show(
             onUserEarnedReward: (ad, reward) {
               print('✓ User earned reward: ${reward.amount} ${reward.type}');
-              _performScoreCheck();
-            },
-          );
-          // Set callback for next time
-          _rewardedAd!.fullScreenContentCallback = FullScreenContentCallback(
-            onAdDismissedFullScreenContent: (ad) {
-              ad.dispose();
-              _loadRewardedAd();
-            },
-            onAdFailedToShowFullScreenContent: (ad, error) {
-              ad.dispose();
-              _loadRewardedAd();
+              // Check score after user watches the ad
+              if (!_scoreCheckInProgress && mounted) {
+                _scoreCheckInProgress = true;
+                _performScoreCheck();
+              }
             },
           );
         } catch (e) {
           print('✗ Error showing rewarded ad on retry: $e');
-          _performScoreCheck();
+          if (!_scoreCheckInProgress && mounted) {
+            _scoreCheckInProgress = true;
+            _performScoreCheck();
+          }
         }
       } else {
         print('⚠ Could not load ad, proceeding without ad');
-        _performScoreCheck();
+        if (!_scoreCheckInProgress && mounted) {
+          _scoreCheckInProgress = true;
+          _performScoreCheck();
+        }
       }
     }
   }
 
   void _performScoreCheck() async {
+    // Reset the flag when starting score check
+    _scoreCheckInProgress = true;
+    
     setState(() {
       _isLoading = true;
       _showScore = false;
@@ -212,6 +452,7 @@ class _CibilScoreScreenState extends State<CibilScoreScreen> with TickerProvider
       if (mounted) {
         setState(() {
           _showEligibility = true;
+          _scoreCheckInProgress = false; // Reset flag when score check is complete
         });
       }
     }
@@ -227,13 +468,14 @@ class _CibilScoreScreenState extends State<CibilScoreScreen> with TickerProvider
     _loaderController?.dispose();
     _scoreController?.dispose();
     _rewardedAd?.dispose();
+    _bannerAd?.dispose();
     super.dispose();
   }
 
   void _checkCibilScore() {
     if (_formKey.currentState!.validate()) {
-      // Show rewarded ad before checking score
-      _showRewardedAdAndCheckScore();
+      // Show confirmation dialog first, then rewarded ad
+      _showRewardedAdConfirmationDialog();
     }
   }
 
@@ -488,6 +730,26 @@ class _CibilScoreScreenState extends State<CibilScoreScreen> with TickerProvider
                           ),
                         ),
                       ),
+                      const SizedBox(height: 24),
+                      // Banner Ad
+                      if (_isBannerAdLoaded && _bannerAd != null)
+                        Container(
+                          alignment: Alignment.center,
+                          width: double.infinity,
+                          height: _bannerAd!.size.height.toDouble(),
+                          child: AdWidget(ad: _bannerAd!),
+                        )
+                      else
+                        const SizedBox(
+                          height: 50,
+                          child: Center(
+                            child: SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),

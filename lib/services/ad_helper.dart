@@ -25,9 +25,9 @@ class AdHelper {
     }
     
     if (Platform.isAndroid) {
-      return 'ca-app-pub-3422720384917984/2899235896';
+      return 'ca-app-pub-3422720384917984/1940282875';
     } else if (Platform.isIOS) {
-      return 'ca-app-pub-3422720384917984/2899235896';
+      return 'ca-app-pub-3422720384917984/1940282875';
     } else {
       throw UnsupportedError('Unsupported platform');
     }
@@ -66,13 +66,22 @@ class AdHelper {
   }
   
   // Banner Ad ID (alternative to Native ads)
-  // Note: If you don't have a separate banner ad unit ID, use test IDs as fallback
   static String get bannerAdUnitId {
-    // Always use test banner ad IDs as fallback since native and banner need different unit IDs
-    // Replace with your actual banner ad unit ID when available
-    return Platform.isAndroid
-      ? 'ca-app-pub-3940256099942544/6300978111'  // Test banner ad (medium rectangle)
-      : 'ca-app-pub-3940256099942544/2934735716'; // Test banner ad for iOS
+    if (_useTesting) {
+      // Test banner ad IDs
+      return Platform.isAndroid
+        ? 'ca-app-pub-3940256099942544/6300978111'  // Test banner ad (medium rectangle)
+        : 'ca-app-pub-3940256099942544/2934735716'; // Test banner ad for iOS
+    }
+    
+    // Production Banner Ad ID
+    if (Platform.isAndroid) {
+      return 'ca-app-pub-3422720384917984/9412412931';
+    } else if (Platform.isIOS) {
+      return 'ca-app-pub-3422720384917984/9412412931';
+    } else {
+      throw UnsupportedError('Unsupported platform');
+    }
   }
 
   // Initialize Mobile Ads SDK
