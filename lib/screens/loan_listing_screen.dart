@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:emi_calculatornew/services/loan_api_service.dart';
 import 'package:emi_calculatornew/providers/theme_provider.dart';
-import 'package:emi_calculatornew/services/ad_helper.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
+// import 'package:emi_calculatornew/services/ad_helper.dart'; // COMMENTED OUT - ADS DISABLED
+// import 'package:google_mobile_ads/google_mobile_ads.dart'; // COMMENTED OUT - ADS DISABLED
 import 'package:provider/provider.dart';
+import 'package:emi_calculatornew/widgets/skeleton_loader.dart';
+import 'package:emi_calculatornew/screens/loan_details_screen.dart';
 
 class LoanListingScreen extends StatefulWidget {
   final String loanType;
@@ -25,7 +27,7 @@ class LoanListingScreen extends StatefulWidget {
 }
 
 class _LoanListingScreenState extends State<LoanListingScreen> {
-  List<LoanData> _loans = [];
+  List<LoanApiData> _loans = [];
   List<LoanCategory> _categories = [];
   String? _selectedCategoryId;
   bool _isLoading = true;
@@ -86,20 +88,10 @@ class _LoanListingScreenState extends State<LoanListingScreen> {
         apiResponse = await LoanApiService.fetchActiveLoans();
       }
       
-      // Convert API data to LoanData format
+      // Filter only active loans
       final loans = apiResponse.loans
           .where((loan) => loan.isActive ?? true) // Only show active loans
-          .map((apiLoan) {
-        return LoanData(
-          title: apiLoan.title ?? 'Loan',
-          companyName: apiLoan.companyName ?? 'Financial Institution',
-          description: apiLoan.description ?? 'Get instant loans with flexible repayment options.',
-          interestRate: apiLoan.interestRate ?? 'N/A',
-          url: apiLoan.url ?? 'https://example.com',
-          category: apiLoan.category ?? apiResponse.category,
-          bankLogo: apiLoan.bankLogo,
-        );
-      }).toList();
+          .toList();
 
       if (mounted) {
         setState(() {
@@ -135,8 +127,10 @@ class _LoanListingScreenState extends State<LoanListingScreen> {
     await _fetchLoans();
   }
 
+  // ============ COMMENTED OUT - REWARDED ADS DISABLED ============
+  /*
   // Show confirmation dialog before rewarded ad
-  Future<void> _showRewardedAdConfirmationDialog(LoanData loan) async {
+  Future<void> _showRewardedAdConfirmationDialog(LoanApiData loan) async {
     return showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -223,12 +217,19 @@ class _LoanListingScreenState extends State<LoanListingScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              // No Thanks button
+              // No Thanks button - Navigate to loan details
               SizedBox(
                 width: double.infinity,
                 child: TextButton(
                   onPressed: () {
                     Navigator.of(context).pop(); // Close dialog
+                    // Navigate to loan details screen
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => LoanDetailsScreen(loan: loan),
+                      ),
+                    );
                   },
                   style: TextButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 12),
@@ -252,9 +253,11 @@ class _LoanListingScreenState extends State<LoanListingScreen> {
       },
     );
   }
+  */
 
+  /*
   // Show confirmation dialog before rewarded ad for loan details
-  Future<void> _showRewardedAdConfirmationDialogForDetails(LoanData loan) async {
+  Future<void> _showRewardedAdConfirmationDialogForDetails(LoanApiData loan) async {
     return showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -370,9 +373,11 @@ class _LoanListingScreenState extends State<LoanListingScreen> {
       },
     );
   }
+  */
 
+  /*
   // Show rewarded ad and then show loan details
-  Future<void> _showRewardedAdAndShowDetails(LoanData loan) async {
+  Future<void> _showRewardedAdAndShowDetails(LoanApiData loan) async {
     if (!mounted) return;
     
     // Show loading indicator
@@ -433,9 +438,11 @@ class _LoanListingScreenState extends State<LoanListingScreen> {
       }
     }
   }
+  */
 
+  /*
   // Show rewarded ad first, then show confirmation dialog
-  Future<void> _showRewardedAdThenConfirmation(LoanData loan) async {
+  Future<void> _showRewardedAdThenConfirmation(LoanApiData loan) async{
     // Show loading indicator
     if (!mounted) return;
     
@@ -459,17 +466,27 @@ class _LoanListingScreenState extends State<LoanListingScreen> {
         rewardedAd.fullScreenContentCallback = FullScreenContentCallback(
           onAdDismissedFullScreenContent: (ad) {
             ad.dispose();
-            // After ad is dismissed, show the confirmation dialog
+            // After ad is dismissed, navigate to loan details
             if (mounted) {
-              _showApplyNowConfirmation(loan);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => LoanDetailsScreen(loan: loan),
+                ),
+              );
             }
           },
           onAdFailedToShowFullScreenContent: (ad, error) {
             print('Rewarded ad failed to show: $error');
             ad.dispose();
-            // Show confirmation dialog even if ad fails to show
+            // Navigate to loan details even if ad fails to show
             if (mounted) {
-              _showApplyNowConfirmation(loan);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => LoanDetailsScreen(loan: loan),
+                ),
+              );
             }
           },
           onAdShowedFullScreenContent: (ad) {
@@ -484,20 +501,32 @@ class _LoanListingScreenState extends State<LoanListingScreen> {
           },
         );
       } else {
-        // If ad failed to load, just show the confirmation dialog
+        // If ad failed to load, just navigate to loan details
         if (mounted) {
-          _showApplyNowConfirmation(loan);
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => LoanDetailsScreen(loan: loan),
+            ),
+          );
         }
       }
     } catch (e) {
       if (mounted) {
         Navigator.of(context).pop(); // Close loading dialog if still open
-        _showApplyNowConfirmation(loan);
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => LoanDetailsScreen(loan: loan),
+          ),
+        );
       }
     }
   }
+  */
 
-  void _showApplyNowConfirmation(LoanData loan) {
+  /*
+  void _showApplyNowConfirmation(LoanApiData loan) {
     final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
     showDialog(
       context: context,
@@ -589,7 +618,9 @@ class _LoanListingScreenState extends State<LoanListingScreen> {
                 Navigator.of(context).pop(); // Close dialog
                 Navigator.of(context).pop(); // Close bottom sheet if open
                 // Launch URL directly without showing ad again
-                _launchURL(loan.url);
+                if (loan.url != null && loan.url!.isNotEmpty) {
+                  _launchURL(loan.url!);
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: widget.primaryColor,
@@ -611,7 +642,9 @@ class _LoanListingScreenState extends State<LoanListingScreen> {
       },
     );
   }
+  */
 
+  /*
   // Show confirmation dialog before rewarded ad for URL launch
   Future<void> _showRewardedAdConfirmationDialogForURL(String url) async {
     return showDialog<void>(
@@ -785,6 +818,8 @@ class _LoanListingScreenState extends State<LoanListingScreen> {
       }
     }
   }
+  */
+  // ============ END OF COMMENTED OUT AD CODE ============
 
   Future<void> _launchURL(String url) async {
     try {
@@ -823,134 +858,351 @@ class _LoanListingScreenState extends State<LoanListingScreen> {
     return Scaffold(
       backgroundColor: themeProvider.backgroundColor,
       appBar: AppBar(
-        backgroundColor: widget.primaryColor,
+        backgroundColor: themeProvider.cardBackground,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: Icon(Icons.arrow_back, color: themeProvider.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          '${widget.loanType} - Loans',
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 20,
+          'Approved Offers',
+          style: TextStyle(
+            color: themeProvider.textPrimary,
+            fontSize: 18,
             fontWeight: FontWeight.bold,
           ),
         ),
-        actions: [
-          if (!_isLoading)
-            IconButton(
-              icon: _isRefreshing
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+      ),
+      body: _isLoading
+          ? _buildLoadingState()
+          : _errorMessage != null
+              ? _buildErrorState()
+              : _loans.isEmpty
+                  ? _buildEmptyState()
+                  : RefreshIndicator(
+                      onRefresh: _refreshLoans,
+                      color: widget.primaryColor,
+                      child: Column(
+                        children: [
+                          // Congratulations Section
+                          _buildCongratulationsSection(themeProvider),
+                          // Filter Buttons
+                          _buildFilterButtons(themeProvider),
+                          // Loan Cards List
+                          Expanded(
+                            child: ListView.separated(
+                              padding: const EdgeInsets.all(16),
+                              itemCount: _loans.length,
+                              separatorBuilder: (context, index) => const SizedBox(height: 16),
+                              itemBuilder: (context, index) {
+                                return _buildApprovedOfferCard(_loans[index], index);
+                              },
+                            ),
+                          ),
+                          // Footer with Security Info
+                          _buildFooter(themeProvider),
+                        ],
                       ),
-                    )
-                  : const Icon(Icons.refresh, color: Colors.white),
-              onPressed: _isRefreshing ? null : _refreshLoans,
-              tooltip: 'Refresh loans',
+                    ),
+    );
+  }
+
+  Widget _buildApprovedOfferCard(LoanApiData loan, int index) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    
+    // Determine badge for each card
+    String? badge;
+    Color? badgeColor;
+    if (index == 0) {
+      badge = 'BEST VALUE';
+      badgeColor = Colors.green.shade600;
+    } else if (index == 1) {
+      badge = 'INSTANT DISBURSAL';
+      badgeColor = Colors.orange.shade600;
+    }
+    
+    return InkWell(
+      onTap: () {
+        // Navigate directly to loan details (ads disabled)
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => LoanDetailsScreen(loan: loan),
+          ),
+        );
+      },
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: themeProvider.themeMode == ThemeMode.dark
+              ? themeProvider.cardBackground
+              : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: themeProvider.themeMode == ThemeMode.dark
+                ? themeProvider.borderColor
+                : Colors.grey.shade200,
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
             ),
         ],
       ),
-      body: Column(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header Section
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  widget.primaryColor,
-                  widget.primaryColor.withOpacity(0.8),
-                ],
-              ),
-            ),
-            child: Column(
+            // Bank info and badge
+            Row(
               children: [
-                Text(
-                  'Available Loans',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Amount Range: ${widget.amountRange}',
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.9),
-                    fontSize: 16,
-                  ),
-                ),
-                if (_totalCount > 0) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    'Total: $_totalCount loan${_totalCount > 1 ? 's' : ''}',
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.8),
-                      fontSize: 14,
+                // Bank logo - Circular
+                Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.grey.shade100,
+                    border: Border.all(
+                      color: Colors.grey.shade300,
+                      width: 1,
                     ),
                   ),
-                ],
+                  child: ClipOval(
+                    child: _buildBankLogo(loan.bankLogo, size: 50),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Bank name and type
+                Expanded(
+            child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                        loan.companyName ?? 'Financial Institution',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: themeProvider.textPrimary,
+                  ),
+                ),
+                      const SizedBox(height: 2),
+                Text(
+                        loan.title ?? 'Loan',
+                  style: TextStyle(
+                          fontSize: 13,
+                          color: themeProvider.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Badge
+                if (badge != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: badgeColor!.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      badge,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: badgeColor,
+                        letterSpacing: 0.5,
+                  ),
+                ),
+                  ),
               ],
             ),
-          ),
-          // Category filter hidden as per requirements
-          // Loan List
-          Expanded(
-            child: _isLoading
-                ? _buildLoadingState()
-                : _errorMessage != null
-                    ? _buildErrorState()
-                    : _loans.isEmpty
-                        ? _buildEmptyState()
-                        : RefreshIndicator(
-                            onRefresh: _refreshLoans,
-                            color: widget.primaryColor,
-                            child: LayoutBuilder(
-                              builder: (context, constraints) {
-                                final isTablet = constraints.maxWidth > 700;
-                                final crossAxisCount = isTablet ? 3 : 2;
-                                // Increased aspect ratio to give more vertical space for full logo display
-                                final childAspectRatio = isTablet ? 1.0 : 0.75;
-                                return GridView.builder(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-                                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: crossAxisCount,
-                                    crossAxisSpacing: 12,
-                                    mainAxisSpacing: 12,
-                                    childAspectRatio: childAspectRatio,
-                                  ),
-                                  physics: const AlwaysScrollableScrollPhysics(),
-                                  itemCount: _loans.length,
-                                  itemBuilder: (context, index) {
-                                    return _buildLoanCard(_loans[index]);
-                                  },
-                                );
-                              },
+            const SizedBox(height: 20),
+            // SANCTIONED AMOUNT
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'SANCTIONED AMOUNT',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: themeProvider.textSecondary,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  '₹${_getSanctionedAmount(index)}',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: themeProvider.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            // INTEREST RATE and TENURE in Row
+            Row(
+              children: [
+                // Interest Rate
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'INTEREST RATE',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: themeProvider.textSecondary,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.trending_down,
+                            size: 16,
+                            color: Colors.green.shade600,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${loan.interestRate ?? '10.5'}% p.a.',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: themeProvider.textPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                // Tenure
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'TENURE',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: themeProvider.textSecondary,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.calendar_today,
+                            size: 16,
+                            color: themeProvider.textSecondary,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${_getTenure(index)} months',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: themeProvider.textPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            // Additional Features
+            _buildFeatureRow(
+              Icons.check_circle,
+              _getFeatureText(index),
+              Colors.green,
+              themeProvider,
+            ),
+            const SizedBox(height: 8),
+            _buildFeatureRow(
+              Icons.info_outline,
+              'Proc. Fee: ${_getProcessingFee(index)}',
+              themeProvider.textSecondary,
+              themeProvider,
+            ),
+            const SizedBox(height: 16),
+            // Proceed button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  // Navigate directly to loan details (ads commented out)
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => LoanDetailsScreen(loan: loan),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1E3A5F),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  elevation: 0,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text(
+                      'Proceed', 
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Icon(Icons.arrow_forward, size: 18),
+                  ],
                             ),
                           ),
           ),
         ],
+        ),
       ),
     );
   }
 
-  Widget _buildLoanCard(LoanData loan) {
+
+  Widget _buildLoanCard(LoanApiData loan) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final accent = widget.primaryColor;
     final accentSoft = _getCardAccentColor(accent);
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () => _showLoanDetails(loan),
+        onTap: () {
+          // Navigate directly to loan details (ads disabled)
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => LoanDetailsScreen(loan: loan),
+            ),
+          );
+        },
         borderRadius: BorderRadius.circular(18),
         child: Ink(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
@@ -1000,7 +1252,7 @@ class _LoanListingScreenState extends State<LoanListingScreen> {
                         borderRadius: BorderRadius.circular(18),
                       ),
                       child: Text(
-                        loan.companyName.toUpperCase(),
+                        (loan.companyName ?? 'Financial Institution').toUpperCase(),
                         style: TextStyle(
                           color: accent,
                           fontSize: 9,
@@ -1014,7 +1266,7 @@ class _LoanListingScreenState extends State<LoanListingScreen> {
                     const SizedBox(height: 6),
                     Flexible(
                       child: Text(
-                        loan.title,
+                        loan.title ?? 'Loan',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 13,
@@ -1077,7 +1329,15 @@ class _LoanListingScreenState extends State<LoanListingScreen> {
                       ],
                     ),
                     child: ElevatedButton(
-                      onPressed: () => _showRewardedAdConfirmationDialogForDetails(loan),
+                      onPressed: () {
+                        // Navigate directly to loan details (ads commented out)
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => LoanDetailsScreen(loan: loan),
+                          ),
+                        );
+                      },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.transparent,
                         shadowColor: Colors.transparent,
@@ -1138,7 +1398,9 @@ class _LoanListingScreenState extends State<LoanListingScreen> {
     return [lighter, medium, darker];
   }
 
-  void _showLoanDetails(LoanData loan) {
+  /*
+  // ============ COMMENTED OUT - BOTTOM SHEET WITH AD CODE ============
+  void _showLoanDetails(LoanApiData loan) {
     final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
     showModalBottomSheet(
       context: context,
@@ -1182,7 +1444,7 @@ class _LoanListingScreenState extends State<LoanListingScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      loan.companyName,
+                                      loan.companyName ?? 'Financial Institution',
                                       style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold,
@@ -1191,7 +1453,7 @@ class _LoanListingScreenState extends State<LoanListingScreen> {
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      loan.title,
+                                      loan.title ?? 'Loan',
                                       style: TextStyle(
                                         fontSize: 14,
                                         color: themeProvider.textSecondary,
@@ -1204,7 +1466,7 @@ class _LoanListingScreenState extends State<LoanListingScreen> {
                           ),
                           const SizedBox(height: 20),
                           Text(
-                            loan.description,
+                            loan.description ?? 'Get instant loans with flexible repayment options.',
                             style: TextStyle(
                               fontSize: 14,
                               color: themeProvider.textPrimary,
@@ -1218,7 +1480,7 @@ class _LoanListingScreenState extends State<LoanListingScreen> {
                                 child: _buildDetailChip(
                                   Icons.percent,
                                   'Interest Rate',
-                                  loan.interestRate,
+                                  loan.interestRate ?? 'N/A',
                                   Colors.green,
                                 ),
                               ),
@@ -1277,7 +1539,13 @@ class _LoanListingScreenState extends State<LoanListingScreen> {
                         ),
                         child: ElevatedButton(
                           onPressed: () {
-                            _showRewardedAdConfirmationDialog(loan);
+                            // Navigate directly to loan details (ads disabled)
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => LoanDetailsScreen(loan: loan),
+                              ),
+                            );
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.transparent,
@@ -1322,6 +1590,278 @@ class _LoanListingScreenState extends State<LoanListingScreen> {
       },
     );
   }
+  */
+  // ============ END OF COMMENTED OUT BOTTOM SHEET CODE ============
+
+  // Build Congratulations Section
+  Widget _buildCongratulationsSection(ThemeProvider themeProvider) {
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: themeProvider.themeMode == ThemeMode.dark
+            ? themeProvider.cardBackground
+            : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // Confetti Icon
+          Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              color: Colors.green.shade50,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.celebration,
+              color: Colors.green.shade600,
+              size: 30,
+            ),
+          ),
+          const SizedBox(width: 16),
+          // Text Content
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Congratulations!',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: themeProvider.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Based on your excellent credit score of 780, you have unlocked exclusive offers.',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: themeProvider.textSecondary,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Build Filter Buttons
+  Widget _buildFilterButtons(ThemeProvider themeProvider) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          Expanded(
+            child: _buildFilterButton(
+              icon: Icons.percent,
+              label: 'Lowest Interest',
+              isSelected: true,
+              themeProvider: themeProvider,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _buildFilterButton(
+              icon: Icons.currency_rupee,
+              label: 'Highest Amount',
+              isSelected: false,
+              themeProvider: themeProvider,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterButton({
+    required IconData icon,
+    required String label,
+    required bool isSelected,
+    required ThemeProvider themeProvider,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      decoration: BoxDecoration(
+        color: isSelected
+            ? const Color(0xFF1E3A5F)
+            : themeProvider.themeMode == ThemeMode.dark
+                ? themeProvider.cardBackground
+                : Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isSelected
+              ? const Color(0xFF1E3A5F)
+              : themeProvider.borderColor,
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            icon,
+            size: 18,
+            color: isSelected
+                ? Colors.white
+                : themeProvider.textSecondary,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: isSelected
+                  ? Colors.white
+                  : themeProvider.textPrimary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Build Footer
+  Widget _buildFooter(ThemeProvider themeProvider) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: themeProvider.themeMode == ThemeMode.dark
+            ? themeProvider.cardBackground
+            : Colors.grey.shade50,
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.check_circle,
+                size: 16,
+                color: Colors.green.shade600,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '100% Secure',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: themeProvider.textSecondary,
+                ),
+              ),
+              const SizedBox(width: 24),
+              Icon(
+                Icons.account_balance,
+                size: 16,
+                color: themeProvider.textSecondary,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'RBI Regulated',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: themeProvider.textSecondary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Interest rates and loan amounts are subject to final verification and documentation by the respective lending partners.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 11,
+              color: themeProvider.textSecondary.withOpacity(0.7),
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Helper methods for static content
+  String _getSanctionedAmount(int index) {
+    switch (index) {
+      case 0:
+        return '5,00,000';
+      case 1:
+        return '3,50,000';
+      case 2:
+        return '2,00,000';
+      default:
+        return '1,00,000';
+    }
+  }
+
+  int _getTenure(int index) {
+    switch (index) {
+      case 0:
+        return 60;
+      case 1:
+        return 48;
+      case 2:
+        return 36;
+      default:
+        return 24;
+    }
+  }
+
+  String _getFeatureText(int index) {
+    switch (index) {
+      case 0:
+        return 'Zero Pre-closure charges';
+      case 1:
+        return 'Disbursal in 2 hours';
+      default:
+        return 'Flexible repayment options';
+    }
+  }
+
+  String _getProcessingFee(int index) {
+    switch (index) {
+      case 0:
+        return '₹999 + GST';
+      case 1:
+        return '₹1,499';
+      case 2:
+        return '₹499';
+      default:
+        return '₹999';
+    }
+  }
+
+  Widget _buildFeatureRow(IconData icon, String text, Color iconColor, ThemeProvider themeProvider) {
+    return Row(
+      children: [
+        Icon(
+          icon,
+          size: 16,
+          color: iconColor,
+        ),
+        const SizedBox(width: 8),
+        Text(
+          text,
+          style: TextStyle(
+            fontSize: 12,
+            color: themeProvider.textSecondary,
+          ),
+        ),
+      ],
+    );
+  }
 
   Widget _buildDetailChip(IconData icon, String label, String value, Color color) {
     return Container(
@@ -1357,24 +1897,13 @@ class _LoanListingScreenState extends State<LoanListingScreen> {
   }
 
   Widget _buildLoadingState() {
-    final themeProvider = Provider.of<ThemeProvider>(context);
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(widget.primaryColor),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Loading loans...',
-            style: TextStyle(
-              fontSize: 16,
-              color: themeProvider.textSecondary,
-            ),
-          ),
-        ],
-      ),
+    return ListView.separated(
+      padding: const EdgeInsets.all(16),
+      itemCount: 5,
+      separatorBuilder: (context, index) => const SizedBox(height: 16),
+      itemBuilder: (context, index) {
+        return const SkeletonLoanCard();
+      },
     );
   }
 
@@ -1525,11 +2054,11 @@ class _LoanListingScreenState extends State<LoanListingScreen> {
                   width: size,
                   height: size,
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
+                    color: Colors.grey.shade100,
+                    shape: BoxShape.circle,
                     border: Border.all(
-                      color: widget.primaryColor.withOpacity(0.5),
-                      width: 2,
+                      color: Colors.grey.shade300,
+                      width: 1,
                     ),
                   ),
                   child: Icon(
@@ -1562,11 +2091,11 @@ class _LoanListingScreenState extends State<LoanListingScreen> {
             width: size,
             height: size,
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
+              color: Colors.grey.shade100,
+              shape: BoxShape.circle,
               border: Border.all(
-                color: widget.primaryColor.withOpacity(0.5),
-                width: 2,
+                color: Colors.grey.shade300,
+                width: 1,
               ),
             ),
             child: Icon(
@@ -1576,25 +2105,5 @@ class _LoanListingScreenState extends State<LoanListingScreen> {
             ),
           );
   }
-}
-
-class LoanData {
-  final String title;
-  final String companyName;
-  final String description;
-  final String interestRate;
-  final String url;
-  final LoanCategory? category;
-  final String? bankLogo;
-
-  LoanData({
-    required this.title,
-    required this.companyName,
-    required this.description,
-    required this.interestRate,
-    required this.url,
-    this.category,
-    this.bankLogo,
-  });
 }
 

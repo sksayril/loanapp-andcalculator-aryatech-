@@ -1,25 +1,29 @@
 import 'package:emi_calculatornew/cibil_score_screen.dart';
-import 'package:emi_calculatornew/gst_calculator_screen.dart';
-import 'package:emi_calculatornew/ppf_calculator_screen.dart';
-import 'package:emi_calculatornew/sip_calculator_screen.dart';
-import 'package:emi_calculatornew/swp_calculator_screen.dart';
-import 'package:emi_calculatornew/lumpsum_calculator_screen.dart';
-import 'package:emi_calculatornew/goal_calculator_screen.dart';
+import 'package:emi_calculatornew/screens/gst_calculator_modern.dart';
+import 'package:emi_calculatornew/screens/ppf_calculator_modern.dart';
+import 'package:emi_calculatornew/screens/sip_calculator_modern.dart';
+import 'package:emi_calculatornew/screens/swp_calculator_modern.dart';
+import 'package:emi_calculatornew/screens/lumpsum_calculator_modern.dart';
+import 'package:emi_calculatornew/screens/goal_calculator_modern.dart';
 import 'package:emi_calculatornew/splash_screen.dart';
-import 'package:emi_calculatornew/vat_calculator_screen.dart';
-import 'package:emi_calculatornew/fixed_deposit_calculator_screen.dart';
-import 'package:emi_calculatornew/recurring_deposit_calculator_screen.dart';
-import 'package:emi_calculatornew/house_rent_calculator_screen.dart';
+import 'package:emi_calculatornew/screens/vat_calculator_modern.dart';
+import 'package:emi_calculatornew/screens/fixed_deposit_calculator_modern.dart';
+import 'package:emi_calculatornew/screens/recurring_deposit_calculator_modern.dart';
+import 'package:emi_calculatornew/screens/house_rent_calculator_modern.dart';
 import 'package:emi_calculatornew/cash_calculator_screen.dart';
 import 'package:emi_calculatornew/live_data_screen.dart';
 import 'package:emi_calculatornew/profile_screen.dart';
 import 'package:emi_calculatornew/screens/create_loan_profile_screen.dart';
 import 'package:emi_calculatornew/screens/view_loan_profiles_screen.dart';
 import 'package:emi_calculatornew/screens/loan_eligibility_screen.dart';
-import 'package:emi_calculatornew/screens/income_tax_calculator_screen.dart';
-import 'package:emi_calculatornew/screens/emi_calculator_screen.dart';
+import 'package:emi_calculatornew/screens/income_tax_calculator_modern.dart';
+import 'package:emi_calculatornew/screens/emi_calculator_modern.dart';
 import 'package:emi_calculatornew/screens/calculation_history_screen.dart';
 import 'package:emi_calculatornew/screens/loan_listing_screen.dart';
+import 'package:emi_calculatornew/screens/home_loan_calculator_screen.dart';
+import 'package:emi_calculatornew/screens/personal_loan_calculator_screen.dart';
+import 'package:emi_calculatornew/screens/business_loan_calculator_screen.dart';
+import 'package:emi_calculatornew/screens/education_loan_calculator_screen.dart';
 import 'package:emi_calculatornew/providers/theme_provider.dart';
 import 'package:emi_calculatornew/providers/language_provider.dart';
 import 'package:emi_calculatornew/providers/language_provider.dart' as lang;
@@ -29,10 +33,10 @@ import 'package:lottie/lottie.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:emi_calculatornew/onboarding_screen.dart';
 import 'package:emi_calculatornew/screens/profile_setup_screen.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:emi_calculatornew/services/ad_helper.dart';
+import 'dart:math';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -59,41 +63,18 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  bool _showOnboarding = true;
-  bool _showProfileSetup = false;
-  bool _isLoadingPrefs = true;
-
   @override
   void initState() {
     super.initState();
-    _checkOnboardingStatus();
-  }
-
-  Future<void> _checkOnboardingStatus() async {
-    final prefs = await SharedPreferences.getInstance();
-    final onboardingCompleted = prefs.getBool('onboarding_completed') ?? false;
-    final profileSetupCompleted = prefs.getBool('profile_setup_completed') ?? false;
-    
-    if (mounted) {
-      setState(() {
-        _showOnboarding = !onboardingCompleted;
-        _showProfileSetup = onboardingCompleted && !profileSetupCompleted;
-        _isLoadingPrefs = false;
-      });
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final languageProvider = Provider.of<LanguageProvider>(context);
-    
-    if (_isLoadingPrefs) {
-      return const SizedBox.shrink();
-    }
 
     return MaterialApp(
-      title: 'Loan King',
+      title: 'Loan Sathi',
       debugShowCheckedModeBanner: false,
       theme: themeProvider.lightTheme,
       darkTheme: themeProvider.darkTheme,
@@ -185,10 +166,17 @@ class _HomePageState extends State<HomePage> {
     _onItemTapped(index);
   }
 
-  // Convert screen index to bottom nav index (Wallet at index 2 is not in bottom nav)
+  // Convert screen index to bottom nav index
   int _getBottomNavIndex(int screenIndex) {
-    if (screenIndex == 3) return 2; // Profile (screen index 3) -> bottom nav index 2
-    return screenIndex; // Home (0) and Loans (1) map directly
+    // Map screen indices to bottom nav indices
+    // Bottom nav: Home(0), Loans(1), Profile(2) - Search commented out
+    switch (screenIndex) {
+      case 0: return 0; // Home
+      case 1: return 1; // Loans
+      case 2: return 1; // Wallet (maps to Loans position, not shown in nav)
+      case 3: return 2; // Profile
+      default: return 0;
+    }
   }
 
   Widget _buildToolbarIcon({
@@ -241,17 +229,26 @@ class _HomePageState extends State<HomePage> {
             final localizations = lang.AppLocalizations.of(context);
             return Row(
               children: [
-                // Logo
+                // Logo - smaller size for app bar
                 Image.asset(
-                  'assets/notesimages/loankinglogo.jpeg',
-                  height: 48,
-                  width: 48,
-                  fit: BoxFit.contain,
+                  'assets/notesimages/loansathloggo.jpeg',
+                  height: 40,
+                  width: 40,
+                  fit: BoxFit.contain, // Show full logo maintaining aspect ratio
+                  filterQuality: FilterQuality.high,
+                  errorBuilder: (context, error, stackTrace) {
+                    // Fallback icon if logo doesn't load
+                    return Icon(
+                      Icons.account_balance,
+                      size: 40,
+                      color: themeProvider.textPrimary,
+                    );
+                  },
                 ),
                 const SizedBox(width: 12),
                 // App Name
                 Text(
-                  localizations?.appName ?? 'Loan King',
+                  localizations?.appName ?? 'Loan Sathi',
                   style: TextStyle(
                     color: themeProvider.textPrimary,
                     fontSize: 18,
@@ -299,24 +296,101 @@ class _HomePageState extends State<HomePage> {
         children: _screens,
       ),
       bottomNavigationBar: Container(
-        color: Colors.white,
-        child: SafeArea(
-          top: false,
-          child: SizedBox(
-            height: 90,
-            child: Stack(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.white,
+              Colors.white.withOpacity(0.95),
+            ],
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 25,
+              offset: const Offset(0, -6),
+              spreadRadius: 2,
+            ),
+            BoxShadow(
+              color: Colors.black.withOpacity(0.15),
+              blurRadius: 15,
+              offset: const Offset(0, -3),
+              spreadRadius: 1,
+            ),
+            BoxShadow(
+              color: const Color(0xFF1E3A5F).withOpacity(0.1),
+              blurRadius: 12,
+              offset: const Offset(0, -2),
+              spreadRadius: 3,
+            ),
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 8,
+              offset: const Offset(0, 0),
+              spreadRadius: 0,
+            ),
+          ],
+        ),
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).padding.bottom > 0 
+              ? MediaQuery.of(context).padding.bottom + 8 
+              : 8,
+        ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final bottomPadding = MediaQuery.of(context).padding.bottom;
+            return Stack(
               clipBehavior: Clip.none,
               children: [
-                // White background container to cover bottom area
+                // Background container to cover entire bottom area with gradient - extends fully to bottom
                 Positioned(
                   bottom: 0,
                   left: 0,
                   right: 0,
+                  top: 0,
                   child: Container(
-                    height: 100,
-                    color: Colors.white,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.white,
+                          Colors.white.withOpacity(0.98),
+                        ],
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.15),
+                          blurRadius: 20,
+                          offset: const Offset(0, -4),
+                          spreadRadius: 2,
+                        ),
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 12,
+                          offset: const Offset(0, -2),
+                          spreadRadius: 1,
+                        ),
+                        BoxShadow(
+                          color: const Color(0xFF1E3A5F).withOpacity(0.06),
+                          blurRadius: 8,
+                          offset: const Offset(0, 0),
+                          spreadRadius: 0,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
+                // SafeArea for content only
+                SafeArea(
+                  top: false,
+                  bottom: false,
+                  child: SizedBox(
+                    height: 90,
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
                 // Curved navigation bar with notch
                 Positioned(
                   bottom: 0,
@@ -330,13 +404,38 @@ class _HomePageState extends State<HomePage> {
                     child: Container(
                       height: 76,
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.white,
+                            const Color(0xFFF8F9FA),
+                          ],
+                        ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.08),
-                            blurRadius: 15,
+                            color: Colors.black.withOpacity(0.25),
+                            blurRadius: 25,
+                            offset: const Offset(0, -5),
+                            spreadRadius: 2,
+                          ),
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.18),
+                            blurRadius: 18,
                             offset: const Offset(0, -3),
-                            spreadRadius: 0,
+                            spreadRadius: 1,
+                          ),
+                          BoxShadow(
+                            color: const Color(0xFF1E3A5F).withOpacity(0.12),
+                            blurRadius: 15,
+                            offset: const Offset(0, -2),
+                            spreadRadius: 4,
+                          ),
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 10,
+                            offset: const Offset(0, 0),
+                            spreadRadius: 1,
                           ),
                         ],
                       ),
@@ -345,34 +444,40 @@ class _HomePageState extends State<HomePage> {
                           left: 20,
                           right: 20,
                           top: 6,
-                          bottom: 8,
+                          bottom: 12,
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: [
                             // Home - All calculators, CIBIL check, tools
-                            _buildNavItem(Icons.home_rounded, 'Home', 0),
+                            _buildNavItem(Icons.home_outlined, 'Home', 0),
                             // Loans - Personal, Home, Car, Education loans, etc.
-                            _buildNavItem(Icons.flash_on, 'Loans', 1),
+                            _buildNavItem(Icons.attach_money_outlined, 'Loans', 1),
+                            // Search icon (COMMENTED OUT)
+                            // _buildNavItem(Icons.search_outlined, '', 2),
                             // Profile - User settings and profile
-                            _buildNavItem(Icons.person, 'Profile', 3),
+                            _buildNavItem(Icons.person_outline, 'Profile', 3),
                           ],
                         ),
                       ),
                     ),
                   ),
                 ),
-                // Floating selected item with animation
+                // Animated selected item with rounded rectangle background
                 AnimatedPositioned(
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeInOut,
-                  bottom: 30,
+                  duration: const Duration(milliseconds: 400),
+                  curve: Curves.easeInOutCubic,
+                  bottom: 24,
                   left: _getSelectedItemPosition(),
-                  child: _buildFloatingSelectedItem(),
+                  child: _buildAnimatedSelectedItem(),
+                ),
+                      ],
+                    ),
+                  ),
                 ),
               ],
-            ),
-          ),
+            );
+          },
         ),
       ),
     );
@@ -480,103 +585,79 @@ class _HomePageState extends State<HomePage> {
     final padding = 20.0;
     final availableWidth = screenWidth - (padding * 2);
     final bottomNavIndex = _getBottomNavIndex(_selectedIndex);
-    final itemWidth = availableWidth / 3; // 3 items in bottom nav
-    final circleWidth = 56.0; // Width of floating circle
+    final itemWidth = availableWidth / 3; // 3 items in bottom nav (Search commented out)
+    final buttonWidth = 80.0; // Width of selected button
     
-    return padding + (itemWidth * bottomNavIndex) + (itemWidth / 2) - (circleWidth / 2);
+    return padding + (itemWidth * bottomNavIndex) + (itemWidth / 2) - (buttonWidth / 2);
   }
 
-  // Build floating selected item
-  Widget _buildFloatingSelectedItem() {
-    // Only show floating item for bottom nav items (Home, Loans, Profile)
-    if (_selectedIndex == 2) {
-      return const SizedBox.shrink(); // Hide for Wallet (not in bottom nav)
-    }
+  // Build animated selected item with rounded rectangle
+  Widget _buildAnimatedSelectedItem() {
     final icon = _getIconForIndex(_selectedIndex);
     final label = _getLabelForIndex(_selectedIndex);
-    final floatingThemeProvider = Provider.of<ThemeProvider>(context);
-    // Use purple color in light mode, lighter purple in dark mode for better visibility
-    final labelColor = floatingThemeProvider.isDarkMode 
-        ? const Color(0xFFB39DDB) // Lighter purple for dark mode
-        : const Color(0xFF7C4DFF); // Deep purple for light mode
     
-    return GestureDetector(
-      onTap: () => _onItemTapped(_selectedIndex),
-      child: Container(
-        width: 56,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 56,
-              height: 56,
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(begin: 0.0, end: 1.0),
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, child) {
+        return Transform.scale(
+          scale: 0.8 + (value * 0.2), // Scale from 0.8 to 1.0
+          child: Opacity(
+            opacity: value,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: LinearGradient(
-                  colors: [
-                    const Color(0xFFB39DDB), // Light purple/lavender
-                    const Color(0xFF9575CD), // Medium purple
-                  ],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                ),
-                border: Border.all(
-                  color: Colors.white.withOpacity(0.9),
-                  width: 4,
-                ),
+                color: const Color(0xFFE1BEE7), // Light purple background
+                borderRadius: BorderRadius.circular(20),
                 boxShadow: [
-                  // Outer shadow for depth
                   BoxShadow(
-                    color: const Color(0xFF9575CD).withOpacity(0.4),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                    spreadRadius: 2,
-                  ),
-                  // Inner shadow for 3D effect
-                  BoxShadow(
-                    color: Colors.white.withOpacity(0.3),
-                    blurRadius: 4,
-                    offset: const Offset(0, -2),
-                    spreadRadius: -1,
+                    color: const Color(0xFF7C4DFF).withOpacity(0.2),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
                   ),
                 ],
               ),
-              alignment: Alignment.center,
-              child: Icon(
-                icon,
-                color: const Color(0xFF5E35B1), // Deep purple icon color
-                size: 26,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    icon,
+                    color: const Color(0xFF7C4DFF), // Dark purple icon
+                    size: 20,
+                  ),
+                  if (label.isNotEmpty) ...[
+                    const SizedBox(width: 8),
+                    Text(
+                      label,
+                      style: const TextStyle(
+                        color: Color(0xFF7C4DFF), // Dark purple text
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: TextStyle(
-                color: labelColor,
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
-              ),
-              overflow: TextOverflow.ellipsis,
-              maxLines: 1,
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
   IconData _getIconForIndex(int index) {
     switch (index) {
       case 0:
-        return Icons.home_rounded;
+        return Icons.home_outlined;
       case 1:
-        return Icons.flash_on;
+        return Icons.attach_money_outlined;
       case 2:
-        return Icons.account_balance_wallet; // Wallet (accessible via top bar)
+        return Icons.search_outlined;
       case 3:
-        return Icons.person;
+        return Icons.person_outline;
       default:
-        return Icons.home_rounded;
+        return Icons.home_outlined;
     }
   }
 
@@ -587,7 +668,7 @@ class _HomePageState extends State<HomePage> {
       case 1:
         return 'Loans'; // All loan types (Personal, Home, Car, etc.)
       case 2:
-        return 'Wallet'; // Cash counter (not in bottom nav, accessible via top bar)
+        return ''; // Search (no label, just icon)
       case 3:
         return 'Profile'; // User profile
       default:
@@ -597,50 +678,29 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildNavItem(IconData icon, String label, int index) {
     final bool isSelected = _selectedIndex == index;
-    final navThemeProvider = Provider.of<ThemeProvider>(context);
     
-    // Only show items that are in bottom nav (Home, Loans, Profile)
-    // Wallet (index 2) is not shown in bottom nav
-
     return Expanded(
       child: GestureDetector(
         onTap: () {
           _onItemTapped(index);
         },
         behavior: HitTestBehavior.opaque,
-        child: Container(
-          color: Colors.transparent,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
           alignment: Alignment.center,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Hide icon when selected (it's floating above)
-              if (!isSelected) ...[
+              // Show outline icon for inactive items, hide for selected (it's in animated button)
+              if (!isSelected)
                 Icon(
                   icon,
-                  color: navThemeProvider.isDarkMode 
-                      ? navThemeProvider.textSecondary 
-                      : const Color(0xFF9E9E9E), // Gray for unselected icons
-                  size: 22,
+                  color: const Color(0xFF7C4DFF), // Dark purple for inactive icons
+                  size: 24,
                 ),
-                const SizedBox(height: 1),
-              ],
-              // Label for unselected items only (selected item label is in floating widget)
-              if (label.isNotEmpty && !isSelected) ...[
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: navThemeProvider.isDarkMode 
-                        ? navThemeProvider.textSecondary 
-                        : const Color(0xFF9E9E9E), // Gray for unselected labels
-                    fontSize: 9,
-                    fontWeight: FontWeight.w400,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 1,
-                ),
-              ],
+              // Hide label for inactive items (only show in selected button)
             ],
           ),
         ),
@@ -728,8 +788,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  // Show confirmation dialog before rewarded ad
-  Future<void> _showRewardedAdConfirmationDialogForCibil() async {
+  // Show confirmation dialog before rewarded ad (COMMENTED OUT)
+  /* Future<void> _showRewardedAdConfirmationDialogForCibil() async {
     return showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -844,10 +904,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         );
       },
     );
-  }
+  } */
 
-  // Show rewarded ad and then navigate to CIBIL score screen
-  Future<void> _showRewardedAdAndNavigateToCibil() async {
+  // Show rewarded ad and then navigate to CIBIL score screen (COMMENTED OUT)
+  /* Future<void> _showRewardedAdAndNavigateToCibil() async {
     if (!mounted) return;
     
     // Show loading indicator
@@ -919,7 +979,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         );
       }
     }
-  }
+  } */
 
   @override
   Widget build(BuildContext context) {
@@ -931,108 +991,166 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         children: [
           // CIBIL Score Checker Card
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             child: GestureDetector(
-              onTap: _showRewardedAdConfirmationDialogForCibil,
+              onTap: () {
+                // Direct navigation - ad dialog commented out
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const CibilScoreScreen()),
+                );
+              },
               child: Container(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                    colors: [
-                      Color(0xFF20B2AA), // Teal-green on the left (exact match)
-                      Color(0xFF1E3A5F), // Darker blue on the right (exact match)
-                    ],
+                  color: themeProvider.themeMode == ThemeMode.dark
+                      ? themeProvider.cardBackground
+                      : Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: themeProvider.themeMode == ThemeMode.dark
+                        ? themeProvider.borderColor
+                        : Colors.grey.shade200,
+                    width: 1,
                   ),
-                  borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
+                      color: Colors.black.withOpacity(0.06),
                       blurRadius: 8,
-                      offset: const Offset(0, 4),
+                      offset: const Offset(0, 2),
+                      spreadRadius: 0,
                     ),
                   ],
                 ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Consumer<LanguageProvider>(
-                            builder: (context, languageProvider, _) {
-                              final localizations = lang.AppLocalizations.of(context);
-                              return Text(
-                                'Check Your CIBIL Score',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 0.5,
-                                ),
-                              );
-                            },
+                    // Credit Health header
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Credit Health',
+                          style: TextStyle(
+                            color: themeProvider.textSecondary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
                           ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            'Instantly check your credit score!',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w400,
-                            ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 3,
                           ),
-                          const SizedBox(height: 16),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 12,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF4CAF50), // Bright green button
-                              borderRadius: BorderRadius.circular(25),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFF4CAF50).withOpacity(0.3),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  'Check Now',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                SizedBox(width: 6),
-                                Icon(
-                                  Icons.arrow_forward,
-                                  color: Colors.white,
-                                  size: 16,
-                                ),
-                              ],
-                            ),
+                          decoration: BoxDecoration(
+                            color: Colors.green.shade50,
+                            borderRadius: BorderRadius.circular(5),
                           ),
-                        ],
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.arrow_upward,
+                                color: Colors.green.shade600,
+                                size: 11,
+                              ),
+                              const SizedBox(width: 3),
+                              Text(
+                                'Excellent',
+                                style: TextStyle(
+                                  color: Colors.green.shade700,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    // Lottie animation - smaller
+                    Center(
+                      child: SizedBox(
+                        width: 130,
+                        height: 130,
+                        child: Lottie.asset(
+                          'assets/lottiegif/Credit Lottie.json',
+                          fit: BoxFit.contain,
+                          repeat: true,
+                          animate: true,
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 20),
+                    const SizedBox(height: 6),
+                    // Info text
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: Text(
+                          'Your credit score is higher than 85% of users. Keep it up!',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: themeProvider.textSecondary,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w400,
+                            height: 1.3,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    // Check Full Report button
                     SizedBox(
-                      height: 120,
-                      width: 120,
-                      child: Lottie.asset(
-                        'assets/lottiegif/Credit Lottie.json',
-                        fit: BoxFit.contain,
-                        repeat: true,
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          // Direct navigation - ad dialog commented out
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const CibilScoreScreen()),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF1E3A5F),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Text(
+                              'Check Full Report',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            const Icon(
+                              Icons.arrow_forward,
+                              size: 16,
+                              color: Colors.white,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    // Powered by CIBIL
+                    Center(
+                      child: Text(
+                        'Powered by CIBIL',
+                        style: TextStyle(
+                          color: themeProvider.textSecondary.withOpacity(0.6),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w400,
+                        ),
                       ),
                     ),
                   ],
@@ -1041,80 +1159,112 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             ),
           ),
 
-          // Loan Profile Section with Enhanced Animations
+          // Loans Section
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                FadeTransition(
-                  opacity: _fadeAnimations[0],
-                  child: SlideTransition(
-                    position: Tween<Offset>(
-                      begin: const Offset(-0.2, 0),
-                      end: Offset.zero,
-                    ).animate(
-                      CurvedAnimation(
-                        parent: _animationController,
-                        curve: const Interval(0.0, 0.3, curve: Curves.easeOut),
+                Consumer<LanguageProvider>(
+                  builder: (context, languageProvider, _) {
+                    final localizations = lang.AppLocalizations.of(context);
+                    return Text(
+                      localizations?.loanProfile ?? 'Loans',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: themeProvider.textPrimary,
+                        letterSpacing: 0.5,
                       ),
-                    ),
-                    child: Consumer<LanguageProvider>(
-                      builder: (context, languageProvider, _) {
-                        final localizations = lang.AppLocalizations.of(context);
-                        return Text(
-                          localizations?.loanProfile ?? 'Loans',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: themeProvider.textPrimary,
-                            letterSpacing: 0.5,
-                          ),
-                        );
-                      },
-                    ),
-                  ),
+                    );
+                  },
                 ),
-                const SizedBox(height: 20),
-                // Always display cards in a horizontal row (one line)
+                const SizedBox(height: 16),
+                // Grid of loan cards (2 columns)
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
-                      flex: 1,
-                      child: _buildAnimatedLoanCard(
-                        0,
-                        '1 Lakh Loan',
-                        Icons.account_balance_wallet,
-                        '₹1,00,000',
-                        widget.onInstantLoanTap,
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const HomeLoanCalculatorScreen(),
+                            ),
+                          );
+                        },
+                        child: _buildLoanCard(
+                          'Home Loan',
+                          'From 8.4% p.a.',
+                          Icons.home_outlined,
+                          const Color(0xFF1E3A5F),
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 12),
                     Expanded(
-                      flex: 1,
-                      child: _buildAnimatedLoanCard(
-                        1,
-                        '5 Lakh Loan',
-                        Icons.home,
-                        '₹5,00,000',
-                        widget.onInstantLoanTap,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      flex: 1,
-                      child: _buildAnimatedLoanCard(
-                        2,
-                        '10 Lakh Loan',
-                        Icons.directions_car,
-                        '₹10,00,000',
-                        widget.onInstantLoanTap,
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const PersonalLoanCalculatorScreen(),
+                            ),
+                          );
+                        },
+                        child: _buildLoanCard(
+                          'Personal Loan',
+                          'Instant Approval',
+                          Icons.person_outline,
+                          const Color(0xFF7C4DFF),
+                        ),
                       ),
                     ),
                   ],
                 ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const BusinessLoanCalculatorScreen(),
+                            ),
+                          );
+                        },
+                        child: _buildLoanCard(
+                          'Business Loan',
+                          'Expand now',
+                          Icons.store_outlined,
+                          const Color(0xFFFF6B35),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const EducationLoanCalculatorScreen(),
+                            ),
+                          );
+                        },
+                        child: _buildLoanCard(
+                          'Education',
+                          'Study abroad',
+                          Icons.school_outlined,
+                          const Color(0xFF00BFA5),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                // Bike Loan and Instant Cash cards removed
               ],
             ),
           ),
@@ -1149,16 +1299,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const GstCalculatorScreen(),
+                              builder: (context) => const GstCalculatorModern(),
                             ),
                           );
                         },
                         child: _buildBusinessCalculatorCard(
-                          'GST\nCalculator',
-                          Colors.purple.shade100,
-                          Colors.purple.shade400,
+                          'GST Calculator',
+                          'Calculate GST',
                           Icons.calculate,
-                          Colors.red.shade300,
+                          Colors.purple.shade600,
                         ),
                       ),
                     ),
@@ -1169,16 +1318,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const EmiCalculatorScreen(),
+                              builder: (context) => const EmiCalculatorModern(),
                             ),
                           );
                         },
                         child: _buildBusinessCalculatorCard(
-                          'EMI\nCalculator',
-                          Colors.teal.shade100,
-                          Colors.teal.shade400,
+                          'EMI Calculator',
+                          'Calculate EMI',
                           Icons.calculate_outlined,
-                          Colors.teal.shade300,
+                          Colors.teal.shade600,
                         ),
                       ),
                     ),
@@ -1193,16 +1341,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const PpfCalculatorScreen(),
+                              builder: (context) => const PpfCalculatorModern(),
                             ),
                           );
                         },
                         child: _buildBusinessCalculatorCard(
-                          'PPF\nCalculator',
-                          Colors.purple.shade50,
-                          Colors.purple.shade400,
+                          'PPF Calculator',
+                          'Plan your savings',
                           Icons.account_balance,
-                          Colors.purple.shade300,
+                          Colors.purple.shade600,
                         ),
                       ),
                     ),
@@ -1213,16 +1360,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const SipCalculatorScreen(),
+                              builder: (context) => const SipCalculatorModern(),
                             ),
                           );
                         },
                         child: _buildBusinessCalculatorCard(
-                          'SIP\nCalculator',
-                          Colors.blue.shade100,
-                          Colors.blue.shade400,
+                          'SIP Calculator',
+                          'Invest systematically',
                           Icons.trending_up,
-                          Colors.blue.shade300,
+                          Colors.blue.shade600,
                         ),
                       ),
                     ),
@@ -1237,16 +1383,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const FixedDepositCalculatorScreen(),
+                              builder: (context) => const FixedDepositCalculatorModern(),
                             ),
                           );
                         },
                         child: _buildBusinessCalculatorCard(
-                          'Fixed Deposit\nCalculator',
-                          Colors.orange.shade100,
-                          Colors.orange.shade400,
+                          'Fixed Deposit',
+                          'Secure returns',
                           Icons.account_balance,
-                          Colors.orange.shade300,
+                          Colors.orange.shade600,
                         ),
                       ),
                     ),
@@ -1257,16 +1402,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const RecurringDepositCalculatorScreen(),
+                              builder: (context) => const RecurringDepositCalculatorModern(),
                             ),
                           );
                         },
                         child: _buildBusinessCalculatorCard(
-                          'Recurring Deposit\nCalculator',
-                          Colors.teal.shade100,
-                          Colors.teal.shade400,
+                          'Recurring Deposit',
+                          'Monthly savings',
                           Icons.savings,
-                          Colors.teal.shade300,
+                          Colors.green.shade600,
                         ),
                       ),
                     ),
@@ -1301,16 +1445,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const SipCalculatorScreen(),
+                              builder: (context) => const SipCalculatorModern(),
                             ),
                           );
                         },
                         child: _buildBusinessCalculatorCard(
-                          'Systematic Investment\nPlan',
-                          Colors.deepPurple.shade50,
-                          Colors.deepPurple.shade300,
+                          'SIP',
+                          'Systematic Investment',
                           Icons.auto_graph,
-                          Colors.deepPurple.shade200,
+                          Colors.deepPurple.shade600,
                         ),
                       ),
                     ),
@@ -1321,16 +1464,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const SwpCalculatorScreen(),
+                              builder: (context) => const SwpCalculatorModern(),
                             ),
                           );
                         },
                         child: _buildBusinessCalculatorCard(
-                          'Systematic Withdrawal\nPlan',
-                          Colors.green.shade50,
-                          Colors.green.shade400,
+                          'SWP',
+                          'Systematic Withdrawal',
                           Icons.money_off_csred,
-                          Colors.green.shade300,
+                          Colors.green.shade600,
                         ),
                       ),
                     ),
@@ -1345,16 +1487,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const LumpsumCalculatorScreen(),
+                              builder: (context) => const LumpsumCalculatorModern(),
                             ),
                           );
                         },
                         child: _buildBusinessCalculatorCard(
-                          'Lumpsum\nCalculator',
-                          Colors.amber.shade50,
-                          Colors.amber.shade400,
+                          'Lumpsum',
+                          'One-time investment',
                           Icons.stacked_line_chart,
-                          Colors.amber.shade300,
+                          Colors.amber.shade700,
                         ),
                       ),
                     ),
@@ -1365,16 +1506,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const GoalCalculatorScreen(),
+                              builder: (context) => const GoalCalculatorModern(),
                             ),
                           );
                         },
                         child: _buildBusinessCalculatorCard(
-                          'Goal\nCalculator',
-                          Colors.indigo.shade50,
-                          Colors.indigo.shade400,
+                          'Goal Calculator',
+                          'Plan your goals',
                           Icons.flag_circle,
-                          Colors.indigo.shade200,
+                          Colors.indigo.shade600,
                         ),
                       ),
                     ),
@@ -1418,7 +1558,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const IncomeTaxCalculatorScreen(),
+                    builder: (context) => const IncomeTaxCalculatorModern(),
                   ),
                 );
               },
@@ -1507,7 +1647,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const VatCalculatorScreen(),
+                    builder: (context) => const VatCalculatorModern(),
                   ),
                 );
               },
@@ -1586,7 +1726,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const HouseRentCalculatorScreen(),
+                    builder: (context) => const HouseRentCalculatorModern(),
                   ),
                 );
               },
@@ -1792,10 +1932,85 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
+  Widget _buildLoanCard(
+    String title,
+    String subtitle,
+    IconData icon,
+    Color iconColor,
+  ) {
+    final themeProvider = ThemeProvider.of(context);
+    
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: themeProvider.themeMode == ThemeMode.dark
+            ? themeProvider.cardBackground
+            : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: themeProvider.themeMode == ThemeMode.dark
+              ? themeProvider.borderColor
+              : Colors.grey.shade200,
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Icon at top
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: iconColor.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              icon,
+              color: iconColor,
+              size: 24,
+            ),
+          ),
+          const SizedBox(height: 12),
+          // Title
+          Text(
+            title,
+            style: TextStyle(
+              color: themeProvider.textPrimary,
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              height: 1.2,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 4),
+          // Subtitle
+          Text(
+            subtitle,
+            style: TextStyle(
+              color: themeProvider.textSecondary,
+              fontSize: 12,
+              fontWeight: FontWeight.w400,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildBusinessCalculatorCard(
     String title,
-    Color bgColor,
-    Color buttonColor,
+    String subtitle,
     IconData icon,
     Color iconBgColor,
   ) {
@@ -1806,68 +2021,63 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       decoration: BoxDecoration(
         color: themeProvider.themeMode == ThemeMode.dark
             ? themeProvider.cardBackground
-            : bgColor,
-        borderRadius: BorderRadius.circular(16),
-        border: themeProvider.themeMode == ThemeMode.dark
-            ? Border.all(color: themeProvider.borderColor)
-            : null,
+            : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: themeProvider.themeMode == ThemeMode.dark
+              ? themeProvider.borderColor
+              : Colors.grey.shade200,
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(
-              themeProvider.themeMode == ThemeMode.dark ? 0.3 : 0.1
-            ),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: iconBgColor,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  icon,
-                  color: Colors.white,
-                  size: 20,
-                ),
-              ),
-              const Spacer(),
-            ],
+          // Icon at top
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: iconBgColor.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              icon,
+              color: iconBgColor,
+              size: 24,
+            ),
           ),
           const SizedBox(height: 12),
+          // Title
           Text(
             title,
             style: TextStyle(
               color: themeProvider.textPrimary,
-              fontSize: 14,
+              fontSize: 15,
               fontWeight: FontWeight.w600,
-              height: 1.3,
+              height: 1.2,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 12),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 10),
-            decoration: BoxDecoration(
-              color: buttonColor,
-              borderRadius: BorderRadius.circular(8),
+          const SizedBox(height: 4),
+          // Subtitle
+          Text(
+            subtitle,
+            style: TextStyle(
+              color: themeProvider.textSecondary,
+              fontSize: 12,
+              fontWeight: FontWeight.w400,
             ),
-            child: const Text(
-              'Click Here',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -2271,4 +2481,3 @@ class _CurvedBottomNavBarClipper extends CustomClipper<Path> {
         oldClipper.selectedIndex != selectedIndex;
   }
 }
-

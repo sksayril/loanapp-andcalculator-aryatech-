@@ -11,6 +11,7 @@ import 'dart:math' as math;
 import '../providers/theme_provider.dart';
 import '../providers/language_provider.dart' as lang;
 import '../services/calculation_history_service.dart';
+import '../widgets/modern_calculator_slider.dart';
 
 class EmiCalculatorScreen extends StatefulWidget {
   const EmiCalculatorScreen({super.key});
@@ -21,20 +22,14 @@ class EmiCalculatorScreen extends StatefulWidget {
 
 class _EmiCalculatorScreenState extends State<EmiCalculatorScreen>
     with TickerProviderStateMixin {
-  // Controllers
-  final _loanAmountController = TextEditingController();
-  final _interestRateController = TextEditingController();
-  final _tenureController = TextEditingController();
-  final _prepaymentAmountController = TextEditingController();
-  final _prepaymentMonthController = TextEditingController();
+  // Slider values
+  double _loanAmount = 200000;
+  double _interestRate = 8.5;
+  double _tenureMonths = 24;
 
   // State variables
   String _selectedLoanType = 'Home Loan';
-  bool _isTenureInYears = true;
-  bool _isFixedRate = true;
-  String _emiDisplayFrequency = 'Monthly';
   bool _showResults = false;
-  bool _showPrepayment = false;
 
   // Calculation results
   double _emi = 0;
@@ -68,7 +63,8 @@ class _EmiCalculatorScreenState extends State<EmiCalculatorScreen>
   @override
   void initState() {
     super.initState();
-    _interestRateController.text = _defaultRates[_selectedLoanType]!.toString();
+    _interestRate = _defaultRates[_selectedLoanType]!;
+    _calculateEMI();
     _resultAnimationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
@@ -88,36 +84,23 @@ class _EmiCalculatorScreenState extends State<EmiCalculatorScreen>
         curve: Curves.easeOutCubic,
       ),
     );
+    _resultAnimationController.forward();
   }
 
   @override
   void dispose() {
-    _loanAmountController.dispose();
-    _interestRateController.dispose();
-    _tenureController.dispose();
-    _prepaymentAmountController.dispose();
-    _prepaymentMonthController.dispose();
     _resultAnimationController.dispose();
     super.dispose();
   }
 
   Future<void> _calculateEMI() async {
-    final loanAmount = double.tryParse(_loanAmountController.text) ?? 0;
-    final interestRate = double.tryParse(_interestRateController.text) ?? 0;
-    var tenure = double.tryParse(_tenureController.text) ?? 0;
+    final loanAmount = _loanAmount;
+    final interestRate = _interestRate;
+    final tenureMonths = _tenureMonths.toInt();
 
-    if (loanAmount <= 0 || interestRate <= 0 || tenure <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter valid values'),
-          backgroundColor: Colors.red,
-        ),
-      );
+    if (loanAmount <= 0 || interestRate <= 0 || tenureMonths <= 0) {
       return;
     }
-
-    // Convert tenure to months
-    int tenureMonths = _isTenureInYears ? (tenure * 12).toInt() : tenure.toInt();
 
     // Calculate EMI
     final monthlyRate = interestRate / 12 / 100;
@@ -126,27 +109,19 @@ class _EmiCalculatorScreenState extends State<EmiCalculatorScreen>
             math.pow(1 + monthlyRate, tenureMonths)) /
         (math.pow(1 + monthlyRate, tenureMonths) - 1);
 
-    // Handle prepayment if applicable
-    double prepaymentAmount = 0;
-    int prepaymentMonth = 0;
-    if (_showPrepayment) {
-      prepaymentAmount = double.tryParse(_prepaymentAmountController.text) ?? 0;
-      prepaymentMonth = int.tryParse(_prepaymentMonthController.text) ?? 0;
-    }
-
     // Generate amortization schedule
     _generateAmortizationSchedule(
       loanAmount,
       interestRate,
       tenureMonths,
       emi,
-      prepaymentAmount,
-      prepaymentMonth,
+      0,
+      0,
     );
 
     // Calculate totals
     _totalPayment = _amortizationSchedule.fold(0.0, (sum, entry) => sum + entry.emi);
-    _totalInterest = _totalPayment - loanAmount + prepaymentAmount;
+    _totalInterest = _totalPayment - loanAmount;
     _principalAmount = loanAmount;
     _emi = emi;
 
@@ -161,9 +136,6 @@ class _EmiCalculatorScreenState extends State<EmiCalculatorScreen>
     
     // Save to history
     await _saveToHistory(loanAmount, interestRate, tenureMonths);
-    
-    // Show results in modal
-    _showResultsModal(context);
   }
 
   Future<void> _saveToHistory(

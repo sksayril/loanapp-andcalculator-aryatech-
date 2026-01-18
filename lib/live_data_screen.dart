@@ -3,8 +3,9 @@ import 'package:emi_calculatornew/services/loan_api_service.dart';
 import 'package:emi_calculatornew/screens/loan_listing_screen.dart';
 import 'package:emi_calculatornew/providers/theme_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:emi_calculatornew/services/ad_helper.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
+// import 'package:emi_calculatornew/services/ad_helper.dart'; // COMMENTED OUT - ADS DISABLED
+// import 'package:google_mobile_ads/google_mobile_ads.dart'; // COMMENTED OUT - ADS DISABLED
+import 'package:emi_calculatornew/widgets/skeleton_loader.dart';
 
 class InstantLoanCategory {
   const InstantLoanCategory({
@@ -35,37 +36,43 @@ class _LiveDataScreenState extends State<LiveDataScreen> {
   String? _errorMessage;
   int _highlightedIndex = 0;
 
-  // Mapping of category names to emojis and colors
+  // Mapping of category names to icons, details and colors
   final Map<String, Map<String, dynamic>> _categoryMetadata = {
     'Personal Loan': {
-      'emoji': '😊',
-      'subtitle': 'For personal needs',
-      'color': Color(0xFF5DADE2),
+      'icon': Icons.account_balance_wallet_outlined,
+      'interestRate': '10.49% - 14%',
+      'processingTime': 'Instant',
+      'color': Color(0xFF5E35B1),
     },
     'Home Loan': {
-      'emoji': '🏡',
-      'subtitle': 'For your home needs',
-      'color': Color(0xFFAF7AC5),
-    },
-    'Car Loan': {
-      'emoji': '🚗',
-      'subtitle': 'Drive your dream ride',
-      'color': Color(0xFFF5B041),
-    },
-    'Gold Loan': {
-      'emoji': '🥇',
-      'subtitle': 'Unlock the value of gold',
-      'color': Color(0xFFF8C471),
-    },
-    'Education Loan': {
-      'emoji': '🎓',
-      'subtitle': 'Fund higher studies',
-      'color': Color(0xFF48C9B0),
+      'icon': Icons.home_outlined,
+      'interestRate': '8.50% Onwards',
+      'processingTime': '3-5 Days',
+      'color': Color(0xFFFF6B35),
     },
     'Business Loan': {
-      'emoji': '💼',
-      'subtitle': 'Boost working capital',
-      'color': Color(0xFFEC7063),
+      'icon': Icons.store_outlined,
+      'interestRate': '12% - 18%',
+      'processingTime': '24 Hours',
+      'color': Color(0xFF7C4DFF),
+    },
+    'Gold Loan': {
+      'icon': Icons.savings_outlined,
+      'interestRate': '7.5% Fixed',
+      'processingTime': '1 Hour',
+      'color': Color(0xFFF9A825),
+    },
+    'Car Loan': {
+      'icon': Icons.directions_car_outlined,
+      'interestRate': '9.25% - 11%',
+      'processingTime': '48 Hours',
+      'color': Color(0xFF1E88E5),
+    },
+    'Education Loan': {
+      'icon': Icons.school_outlined,
+      'interestRate': '8.5% - 10%',
+      'processingTime': '5-7 Days',
+      'color': Color(0xFF00BFA5),
     },
   };
 
@@ -98,15 +105,16 @@ class _LiveDataScreenState extends State<LiveDataScreen> {
           final mappedCategories = categories.map((category) {
             final name = category.name ?? 'Unknown';
             final metadata = _categoryMetadata[name] ?? {
-              'emoji': '💰',
-              'subtitle': category.description ?? 'Loan options available',
-              'color': Color(0xFF5DADE2),
+              'icon': Icons.account_balance_wallet_outlined,
+              'interestRate': 'Contact for details',
+              'processingTime': 'Varies',
+              'color': Color(0xFF5E35B1),
             };
             
             return InstantLoanCategory(
               title: name,
-              emoji: metadata['emoji'] as String,
-              subtitle: metadata['subtitle'] as String,
+              emoji: '', // Not used anymore
+              subtitle: metadata['interestRate'] as String,
               color: metadata['color'] as Color,
               categoryId: category.id,
             );
@@ -143,20 +151,27 @@ class _LiveDataScreenState extends State<LiveDataScreen> {
         elevation: 0,
         backgroundColor: themeProvider.cardBackground,
         title: Text(
-          'Loans',
+          'Recommended for You',
           style: TextStyle(
             fontWeight: FontWeight.w700,
+            fontSize: 18,
             color: themeProvider.textPrimary,
           ),
         ),
         iconTheme: IconThemeData(color: themeProvider.textPrimary),
         actions: [
-          IconButton(
+          TextButton(
             onPressed: () {},
-            icon: Icon(Icons.help_outline),
-            color: themeProvider.textSecondary,
+            child: Text(
+              'View All',
+              style: TextStyle(
+                color: const Color(0xFF7C4DFF),
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
-          const SizedBox(width: 4),
+          const SizedBox(width: 8),
         ],
       ),
       body: SafeArea(
@@ -164,18 +179,173 @@ class _LiveDataScreenState extends State<LiveDataScreen> {
             ? _buildLoadingState()
             : _errorMessage != null
                 ? _buildErrorState()
-                : SingleChildScrollView(
-                    padding: const EdgeInsets.all(18),
+                : ListView.separated(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _categories.length,
+                    separatorBuilder: (context, index) => const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      return _buildLoanListCard(_categories[index]);
+                    },
+                  ),
+      ),
+    );
+  }
+
+  Widget _buildLoanListCard(InstantLoanCategory category) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final metadata = _categoryMetadata[category.title];
+    final icon = metadata?['icon'] as IconData? ?? Icons.account_balance_wallet_outlined;
+    final interestRate = metadata?['interestRate'] as String? ?? 'Contact for details';
+    final processingTime = metadata?['processingTime'] as String? ?? 'Varies';
+    final isInstant = processingTime.toLowerCase().contains('instant') || processingTime.toLowerCase().contains('hour');
+    
+    return InkWell(
+      onTap: () {
+        // Navigate directly to loan listing (ads disabled)
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => LoanListingScreen(
+              loanType: category.title,
+              amountRange: category.subtitle,
+              primaryColor: category.color,
+              initialCategoryId: category.categoryId,
+            ),
+          ),
+        );
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: themeProvider.themeMode == ThemeMode.dark
+              ? themeProvider.cardBackground
+              : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: themeProvider.themeMode == ThemeMode.dark
+                ? themeProvider.borderColor
+                : Colors.grey.shade200,
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            // Icon with colored background
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: category.color.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                icon,
+                color: category.color,
+                size: 28,
+              ),
+            ),
+            const SizedBox(width: 16),
+            // Loan details
+            Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildIntroCard(),
-                        const SizedBox(height: 20),
-                        _buildSectionTitle('Choose a loan type'),
-                        const SizedBox(height: 10),
-                        _buildCategoryGrid(),
+                  // Loan title
+                  Text(
+                    category.title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: themeProvider.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  // Interest rate
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.percent,
+                        size: 14,
+                        color: themeProvider.textSecondary,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        interestRate,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: themeProvider.textSecondary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      if (isInstant)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.green.shade50,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.bolt,
+                                size: 12,
+                                color: Colors.green.shade700,
+                              ),
+                              const SizedBox(width: 2),
+                              Text(
+                                'Instant',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.green.shade700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  // Processing time
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.access_time,
+                        size: 14,
+                        color: themeProvider.textSecondary,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        processingTime,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: themeProvider.textSecondary,
+                        ),
+                      ),
                       ],
                     ),
+                ],
+              ),
+            ),
+            // Arrow icon
+            Icon(
+              Icons.arrow_forward_ios,
+              size: 16,
+              color: themeProvider.textSecondary.withOpacity(0.5),
+            ),
+          ],
                   ),
       ),
     );
@@ -259,7 +429,18 @@ class _LiveDataScreenState extends State<LiveDataScreen> {
           borderRadius: BorderRadius.circular(20),
           onTap: () {
             setState(() => _highlightedIndex = index);
-            _showRewardedAdConfirmationDialog(category);
+            // Navigate directly to loan listing (ads disabled)
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => LoanListingScreen(
+                  loanType: category.title,
+                  amountRange: category.subtitle,
+                  primaryColor: category.color,
+                  initialCategoryId: category.categoryId,
+                ),
+              ),
+            );
           },
           child: Container(
             padding: const EdgeInsets.all(16),
@@ -414,6 +595,8 @@ class _LiveDataScreenState extends State<LiveDataScreen> {
     );
   }
 
+  /*
+  // ============ COMMENTED OUT - REWARDED ADS DISABLED ============
   // Show confirmation dialog before rewarded ad
   Future<void> _showRewardedAdConfirmationDialog(InstantLoanCategory category) async {
     return showDialog<void>(
@@ -594,6 +777,8 @@ class _LiveDataScreenState extends State<LiveDataScreen> {
       }
     }
   }
+  */
+  // ============ END OF COMMENTED OUT AD CODE ============
 
   void _navigateToLoanListing(InstantLoanCategory category) {
     Navigator.push(
@@ -610,24 +795,13 @@ class _LiveDataScreenState extends State<LiveDataScreen> {
   }
 
   Widget _buildLoadingState() {
-    final themeProvider = Provider.of<ThemeProvider>(context);
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF7C4DFF)),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Loading categories...',
-            style: TextStyle(
-              fontSize: 16,
-              color: themeProvider.textSecondary,
-            ),
-          ),
-        ],
-      ),
+    return ListView.separated(
+      padding: const EdgeInsets.all(16),
+      itemCount: 6,
+      separatorBuilder: (context, index) => const SizedBox(height: 12),
+      itemBuilder: (context, index) {
+        return const SkeletonLoanCard();
+      },
     );
   }
 

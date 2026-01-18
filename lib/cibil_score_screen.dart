@@ -5,8 +5,9 @@ import 'package:intl/intl.dart';
 import 'package:syncfusion_flutter_gauges/gauges.dart';
 import 'package:emi_calculatornew/providers/theme_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
-import 'package:emi_calculatornew/services/ad_helper.dart';
+// Ad imports commented out
+// import 'package:google_mobile_ads/google_mobile_ads.dart';
+// import 'package:emi_calculatornew/services/ad_helper.dart';
 
 class CibilScoreScreen extends StatefulWidget {
   const CibilScoreScreen({super.key});
@@ -33,19 +34,20 @@ class _CibilScoreScreenState extends State<CibilScoreScreen> with TickerProvider
   AnimationController? _scoreController;
   Animation<double>? _scoreAnimation;
   
-  // Ad related variables
-  RewardedAd? _rewardedAd;
-  bool _isRewardedAdLoaded = false;
-  BannerAd? _bannerAd;
-  bool _isBannerAdLoaded = false;
+  // Ad related variables (COMMENTED OUT)
+  // RewardedAd? _rewardedAd;
+  // bool _isRewardedAdLoaded = false;
+  // BannerAd? _bannerAd;
+  // bool _isBannerAdLoaded = false;
   bool _scoreCheckInProgress = false;
 
   @override
   void initState() {
     super.initState();
     _initializeControllers();
-    _loadRewardedAd();
-    _loadBannerAd();
+    // Ad loading commented out
+    // _loadRewardedAd();
+    // _loadBannerAd();
   }
 
   void _initializeControllers() {
@@ -65,8 +67,8 @@ class _CibilScoreScreenState extends State<CibilScoreScreen> with TickerProvider
     }
   }
 
-  // Load Rewarded Ad
-  void _loadRewardedAd() async {
+  // Load Rewarded Ad (COMMENTED OUT)
+  /* void _loadRewardedAd() async {
     print('→ Starting to load rewarded ad...');
     _rewardedAd = await AdHelper.loadRewardedAd();
     
@@ -110,10 +112,10 @@ class _CibilScoreScreenState extends State<CibilScoreScreen> with TickerProvider
         });
       }
     }
-  }
+  } */
 
-  // Load Banner Ad
-  void _loadBannerAd() {
+  // Load Banner Ad (COMMENTED OUT)
+  /* void _loadBannerAd() {
     print('→ Starting to load banner ad...');
     _bannerAd = AdHelper.loadBannerAd(
       onAdLoaded: (ad) {
@@ -135,10 +137,10 @@ class _CibilScoreScreenState extends State<CibilScoreScreen> with TickerProvider
       },
       adSize: AdSize.banner,
     );
-  }
+  } */
 
-  // Show confirmation dialog before rewarded ad
-  Future<void> _showRewardedAdConfirmationDialog() async {
+  // Show confirmation dialog before rewarded ad (COMMENTED OUT)
+  /* Future<void> _showRewardedAdConfirmationDialog() async {
     return showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -253,10 +255,10 @@ class _CibilScoreScreenState extends State<CibilScoreScreen> with TickerProvider
         );
       },
     );
-  }
+  } */
 
-  // Show Rewarded Ad and then check score
-  void _showRewardedAdAndCheckScore() async {
+  // Show Rewarded Ad and then check score (COMMENTED OUT)
+  /* void _showRewardedAdAndCheckScore() async {
     // Prevent multiple simultaneous score checks
     if (_scoreCheckInProgress) {
       print('⚠ Score check already in progress, ignoring request');
@@ -412,7 +414,7 @@ class _CibilScoreScreenState extends State<CibilScoreScreen> with TickerProvider
         }
       }
     }
-  }
+  } */
 
   void _performScoreCheck() async {
     // Reset the flag when starting score check
@@ -467,15 +469,17 @@ class _CibilScoreScreenState extends State<CibilScoreScreen> with TickerProvider
     _dobController.dispose();
     _loaderController?.dispose();
     _scoreController?.dispose();
-    _rewardedAd?.dispose();
-    _bannerAd?.dispose();
+    // Ad disposal commented out
+    // _rewardedAd?.dispose();
+    // _bannerAd?.dispose();
     super.dispose();
   }
 
   void _checkCibilScore() {
     if (_formKey.currentState!.validate()) {
-      // Show confirmation dialog first, then rewarded ad
-      _showRewardedAdConfirmationDialog();
+      // Direct score check - ad dialog commented out
+      _scoreCheckInProgress = true;
+      _performScoreCheck();
     }
   }
 
@@ -730,26 +734,26 @@ class _CibilScoreScreenState extends State<CibilScoreScreen> with TickerProvider
                           ),
                         ),
                       ),
-                      const SizedBox(height: 24),
-                      // Banner Ad
-                      if (_isBannerAdLoaded && _bannerAd != null)
-                        Container(
-                          alignment: Alignment.center,
-                          width: double.infinity,
-                          height: _bannerAd!.size.height.toDouble(),
-                          child: AdWidget(ad: _bannerAd!),
-                        )
-                      else
-                        const SizedBox(
-                          height: 50,
-                          child: Center(
-                            child: SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
-                          ),
-                        ),
+                      // Banner Ad (COMMENTED OUT)
+                      // const SizedBox(height: 24),
+                      // if (_isBannerAdLoaded && _bannerAd != null)
+                      //   Container(
+                      //     alignment: Alignment.center,
+                      //     width: double.infinity,
+                      //     height: _bannerAd!.size.height.toDouble(),
+                      //     child: AdWidget(ad: _bannerAd!),
+                      //   )
+                      // else
+                      //   const SizedBox(
+                      //     height: 50,
+                      //     child: Center(
+                      //       child: SizedBox(
+                      //         width: 20,
+                      //         height: 20,
+                      //         child: CircularProgressIndicator(strokeWidth: 2),
+                      //       ),
+                      //     ),
+                      //   ),
                     ],
                   ),
                 ),
