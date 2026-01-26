@@ -5,14 +5,14 @@ import 'package:intl/intl.dart';
 import 'package:syncfusion_flutter_gauges/gauges.dart';
 import 'package:emi_calculatornew/providers/theme_provider.dart';
 import 'package:provider/provider.dart';
-// Ad imports commented out
-// import 'package:google_mobile_ads/google_mobile_ads.dart';
-// import 'package:emi_calculatornew/services/ad_helper.dart';
+// Ad imports
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:emi_calculatornew/services/ad_helper.dart';
 
 class CibilScoreScreen extends StatefulWidget {
   const CibilScoreScreen({super.key});
 
-  @override
+  @override 
   State<CibilScoreScreen> createState() => _CibilScoreScreenState();
 }
 
@@ -34,20 +34,18 @@ class _CibilScoreScreenState extends State<CibilScoreScreen> with TickerProvider
   AnimationController? _scoreController;
   Animation<double>? _scoreAnimation;
   
-  // Ad related variables (COMMENTED OUT)
-  // RewardedAd? _rewardedAd;
-  // bool _isRewardedAdLoaded = false;
-  // BannerAd? _bannerAd;
-  // bool _isBannerAdLoaded = false;
+  // Ad related variables
+  RewardedAd? _rewardedAd;
+  bool _isRewardedAdLoaded = false;
+  bool _isAdLoading = false;
   bool _scoreCheckInProgress = false;
 
   @override
   void initState() {
     super.initState();
     _initializeControllers();
-    // Ad loading commented out
-    // _loadRewardedAd();
-    // _loadBannerAd();
+    // Load rewarded ad on init
+    _loadRewardedAd();
   }
 
   void _initializeControllers() {
@@ -67,14 +65,21 @@ class _CibilScoreScreenState extends State<CibilScoreScreen> with TickerProvider
     }
   }
 
-  // Load Rewarded Ad (COMMENTED OUT)
-  /* void _loadRewardedAd() async {
+  // Load Rewarded Ad
+  Future<void> _loadRewardedAd() async {
+    if (_isAdLoading) return;
+    
+    setState(() {
+      _isAdLoading = true;
+    });
+    
     print('→ Starting to load rewarded ad...');
     _rewardedAd = await AdHelper.loadRewardedAd();
     
     if (_rewardedAd != null && mounted) {
       setState(() {
         _isRewardedAdLoaded = true;
+        _isAdLoading = false;
       });
       
       print('✓ Rewarded ad is ready to show');
@@ -97,6 +102,7 @@ class _CibilScoreScreenState extends State<CibilScoreScreen> with TickerProvider
           ad.dispose();
           setState(() {
             _isRewardedAdLoaded = false;
+            _isAdLoading = false;
           });
           _loadRewardedAd(); // Load next ad
         },
@@ -109,10 +115,11 @@ class _CibilScoreScreenState extends State<CibilScoreScreen> with TickerProvider
       if (mounted) {
         setState(() {
           _isRewardedAdLoaded = false;
+          _isAdLoading = false;
         });
       }
     }
-  } */
+  }
 
   // Load Banner Ad (COMMENTED OUT)
   /* void _loadBannerAd() {
@@ -257,8 +264,8 @@ class _CibilScoreScreenState extends State<CibilScoreScreen> with TickerProvider
     );
   } */
 
-  // Show Rewarded Ad and then check score (COMMENTED OUT)
-  /* void _showRewardedAdAndCheckScore() async {
+  // Show Rewarded Ad and then check score
+  Future<void> _showRewardedAdAndCheckScore() async {
     // Prevent multiple simultaneous score checks
     if (_scoreCheckInProgress) {
       print('⚠ Score check already in progress, ignoring request');
@@ -414,7 +421,7 @@ class _CibilScoreScreenState extends State<CibilScoreScreen> with TickerProvider
         }
       }
     }
-  } */
+  }
 
   void _performScoreCheck() async {
     // Reset the flag when starting score check
@@ -435,7 +442,7 @@ class _CibilScoreScreenState extends State<CibilScoreScreen> with TickerProvider
     _loaderController?.reset();
     _loaderController?.forward();
 
-    // Wait for 5 seconds
+    // Wait for 5 seconds (loader cannot be skipped)
     await Future.delayed(const Duration(seconds: 5));
 
     if (mounted) {
@@ -469,17 +476,15 @@ class _CibilScoreScreenState extends State<CibilScoreScreen> with TickerProvider
     _dobController.dispose();
     _loaderController?.dispose();
     _scoreController?.dispose();
-    // Ad disposal commented out
-    // _rewardedAd?.dispose();
-    // _bannerAd?.dispose();
+    // Ad disposal
+    _rewardedAd?.dispose();
     super.dispose();
   }
 
   void _checkCibilScore() {
     if (_formKey.currentState!.validate()) {
-      // Direct score check - ad dialog commented out
-      _scoreCheckInProgress = true;
-      _performScoreCheck();
+      // Show rewarded ad before checking score
+      _showRewardedAdAndCheckScore();
     }
   }
 
@@ -533,7 +538,9 @@ class _CibilScoreScreenState extends State<CibilScoreScreen> with TickerProvider
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
-    return Scaffold(
+    return PopScope(
+      canPop: !_isLoading && !_scoreCheckInProgress, // Prevent back button during loading and score check
+      child: Scaffold(
       backgroundColor: themeProvider.backgroundColor,
       appBar: AppBar(
         title: Text(
@@ -770,6 +777,7 @@ class _CibilScoreScreenState extends State<CibilScoreScreen> with TickerProvider
           ],
         ),
       ),
+      ),
     );
   }
 
@@ -973,7 +981,7 @@ class _CibilScoreScreenState extends State<CibilScoreScreen> with TickerProvider
                     ),
                     const SizedBox(height: 20),
                     SizedBox(
-                      height: 250,
+                      height: 350,
                       child: SfRadialGauge(
                         axes: <RadialAxis>[
                           RadialAxis(
@@ -1039,7 +1047,7 @@ class _CibilScoreScreenState extends State<CibilScoreScreen> with TickerProvider
                                     Text(
                                       _cibilScore.toStringAsFixed(0),
                                       style: TextStyle(
-                                        fontSize: 42,
+                                        fontSize: 56,
                                         fontWeight: FontWeight.bold,
                                         color: scoreColor,
                                       ),

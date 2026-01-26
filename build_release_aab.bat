@@ -23,7 +23,7 @@ if %ERRORLEVEL% EQU 0 (
     echo build\app\outputs\bundle\release\app-release.aab
     echo.
     echo Package Name: com.loansathi.app
-    echo Version: 1.0.2 (Version Code: 3)
+    echo Version: 1.0.3 (Version Code: 4)
     echo.
     echo Ready for Play Store upload!
     echo ========================================

@@ -36,6 +36,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:emi_calculatornew/screens/profile_setup_screen.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:emi_calculatornew/services/ad_helper.dart';
+import 'package:emi_calculatornew/services/loan_api_service.dart';
 import 'dart:math';
 
 void main() async {
@@ -728,6 +729,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   late List<Animation<Offset>> _slideAnimations;
   late List<Animation<double>> _scaleAnimations;
 
+  // Rewarded ad variables
+  RewardedAd? _rewardedAd;
+  bool _isRewardedAdLoaded = false;
+  bool _isAdLoading = false;
+  
+  // Apply Now button visibility for Loans section
+  bool _isApplyNowActive = false;
+  bool _isCheckingApplyNow = true;
+
   @override
   void initState() {
     super.initState();
@@ -735,6 +745,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       vsync: this,
       duration: const Duration(milliseconds: 1200),
     );
+    
+    // Load rewarded ad on init
+    _loadRewardedAd();
+    // Check Apply Now status
+    _checkApplyNowStatus();
 
     // Create staggered animations for each card
     _fadeAnimations = List.generate(3, (index) {
@@ -785,7 +800,176 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   @override
   void dispose() {
     _animationController.dispose();
+    _rewardedAd?.dispose();
     super.dispose();
+  }
+
+  // Load Rewarded Ad
+  Future<void> _loadRewardedAd() async {
+    if (_isAdLoading) return;
+    
+    setState(() {
+      _isAdLoading = true;
+    });
+    
+    print('→ Loading rewarded ad for Check Full Report...');
+    _rewardedAd = await AdHelper.loadRewardedAd();
+    
+    if (_rewardedAd != null && mounted) {
+      setState(() {
+        _isRewardedAdLoaded = true;
+        _isAdLoading = false;
+      });
+      
+      print('✓ Rewarded ad loaded successfully');
+      
+      // Set full screen content callback
+      _rewardedAd!.fullScreenContentCallback = FullScreenContentCallback(
+        onAdShowedFullScreenContent: (ad) {
+          print('Rewarded ad showed full screen content');
+        },
+        onAdDismissedFullScreenContent: (ad) {
+          print('Rewarded ad dismissed');
+          ad.dispose();
+          setState(() {
+            _isRewardedAdLoaded = false;
+          });
+          _loadRewardedAd(); // Load next ad
+        },
+        onAdFailedToShowFullScreenContent: (ad, error) {
+          print('✗ Rewarded ad failed to show: ${error.message}');
+          ad.dispose();
+          setState(() {
+            _isRewardedAdLoaded = false;
+            _isAdLoading = false;
+          });
+          _loadRewardedAd(); // Load next ad
+        },
+        onAdImpression: (ad) {
+          print('Rewarded ad impression');
+        },
+      );
+    } else {
+      print('✗ Failed to load rewarded ad');
+      if (mounted) {
+        setState(() {
+          _isRewardedAdLoaded = false;
+          _isAdLoading = false;
+        });
+      }
+    }
+  }
+
+  // Check Apply Now status from API
+  Future<void> _checkApplyNowStatus() async {
+    try {
+      final status = await LoanApiService.checkApplyNowStatus();
+      if (mounted) {
+        setState(() {
+          _isApplyNowActive = status.isActive;
+          _isCheckingApplyNow = false;
+        });
+      }
+    } catch (e) {
+      print('Error checking Apply Now status: $e');
+      // Default to showing section if API fails
+      if (mounted) {
+        setState(() {
+          _isApplyNowActive = true;
+          _isCheckingApplyNow = false;
+        });
+      }
+    }
+  }
+
+  // Show Rewarded Ad and Navigate
+  void _showRewardedAdAndNavigate() async {
+    print('→ Attempting to show rewarded ad...');
+    print('  Ad loaded: $_isRewardedAdLoaded');
+    print('  Ad object: ${_rewardedAd != null}');
+    
+    if (_rewardedAd != null && _isRewardedAdLoaded) {
+      print('✓ Showing rewarded ad now');
+      
+      try {
+        await _rewardedAd!.show(
+          onUserEarnedReward: (ad, reward) {
+            print('✓ User earned reward: ${reward.amount} ${reward.type}');
+            // Navigate after user watches the ad
+            if (mounted) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const CibilScoreScreen()),
+              );
+            }
+          },
+        );
+      } catch (e) {
+        print('✗ Error showing rewarded ad: $e');
+        // If ad fails to show, navigate anyway
+        if (mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const CibilScoreScreen()),
+          );
+        }
+      }
+    } else {
+      print('⚠ Rewarded ad not ready, loading ad first...');
+      // If ad is not loaded, show loading dialog and try to load ad
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const Center(
+            child: CircularProgressIndicator(),
+          ),
+        );
+      }
+      
+      // Try to load ad one more time
+      await _loadRewardedAd();
+      
+      // Close loading dialog
+      if (mounted) Navigator.of(context).pop();
+      
+      if (_rewardedAd != null && _isRewardedAdLoaded && mounted) {
+        print('✓ Ad loaded on retry, showing now');
+        
+        try {
+          await _rewardedAd!.show(
+            onUserEarnedReward: (ad, reward) {
+              print('✓ User earned reward: ${reward.amount} ${reward.type}');
+              // Navigate after user watches the ad
+              if (mounted) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const CibilScoreScreen()),
+                );
+              }
+            },
+          );
+        } catch (e) {
+          print('✗ Error showing rewarded ad on retry: $e');
+          // If ad fails to show, navigate anyway
+          if (mounted) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const CibilScoreScreen()),
+            );
+          }
+        }
+      } else {
+        print('⚠ Could not load ad, navigating without ad');
+        // Navigate even if ad fails to load
+        if (mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const CibilScoreScreen()),
+          );
+        }
+      }
+    }
   }
 
   // Show confirmation dialog before rewarded ad (COMMENTED OUT)
@@ -1069,16 +1253,22 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       ],
                     ),
                     const SizedBox(height: 6),
-                    // Lottie animation - smaller
-                    Center(
-                      child: SizedBox(
-                        width: 130,
-                        height: 130,
-                        child: Lottie.asset(
-                          'assets/lottiegif/Credit Lottie.json',
-                          fit: BoxFit.contain,
-                          repeat: true,
-                          animate: true,
+                    // Lottie animation - slightly shifted to left
+                    Padding(
+                      padding: const EdgeInsets.only(left: 54, right: 16),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Container(
+                          width: 200,
+                          height: 200,
+                          alignment: Alignment.center,
+                          child: Lottie.asset(
+                            'assets/lottiegif/Credit Lottie.json',
+                            fit: BoxFit.contain,
+                            repeat: true,
+                            animate: true,
+                            alignment: Alignment.center,
+                          ),
                         ),
                       ),
                     ),
@@ -1104,13 +1294,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: () {
-                          // Direct navigation - ad dialog commented out
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => const CibilScoreScreen()),
-                          );
-                        },
+                        onPressed: _showRewardedAdAndNavigate,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF1E3A5F),
                           foregroundColor: Colors.white,
@@ -1159,115 +1343,116 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             ),
           ),
 
-          // Loans Section
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Consumer<LanguageProvider>(
-                  builder: (context, languageProvider, _) {
-                    final localizations = lang.AppLocalizations.of(context);
-                    return Text(
-                      localizations?.loanProfile ?? 'Loans',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: themeProvider.textPrimary,
-                        letterSpacing: 0.5,
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 16),
-                // Grid of loan cards (2 columns)
-                Row(
-                  children: [
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const HomeLoanCalculatorScreen(),
-                            ),
-                          );
-                        },
-                        child: _buildLoanCard(
-                          'Home Loan',
-                          'From 8.4% p.a.',
-                          Icons.home_outlined,
-                          const Color(0xFF1E3A5F),
+          // Loans Section (only show if isActive is true)
+          if (!_isCheckingApplyNow && _isApplyNowActive)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Consumer<LanguageProvider>(
+                    builder: (context, languageProvider, _) {
+                      final localizations = lang.AppLocalizations.of(context);
+                      return Text(
+                        localizations?.loanProfile ?? 'Loans',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: themeProvider.textPrimary,
+                          letterSpacing: 0.5,
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  // Grid of loan cards (2 columns)
+                  Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const HomeLoanCalculatorScreen(),
+                              ),
+                            );
+                          },
+                          child: _buildLoanCard(
+                            'Home Loan',
+                            'From 8.4% p.a.',
+                            Icons.home_outlined,
+                            const Color(0xFF1E3A5F),
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const PersonalLoanCalculatorScreen(),
-                            ),
-                          );
-                        },
-                        child: _buildLoanCard(
-                          'Personal Loan',
-                          'Instant Approval',
-                          Icons.person_outline,
-                          const Color(0xFF7C4DFF),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const PersonalLoanCalculatorScreen(),
+                              ),
+                            );
+                          },
+                          child: _buildLoanCard(
+                            'Personal Loan',
+                            'Instant Approval',
+                            Icons.person_outline,
+                            const Color(0xFF7C4DFF),
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const BusinessLoanCalculatorScreen(),
-                            ),
-                          );
-                        },
-                        child: _buildLoanCard(
-                          'Business Loan',
-                          'Expand now',
-                          Icons.store_outlined,
-                          const Color(0xFFFF6B35),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const BusinessLoanCalculatorScreen(),
+                              ),
+                            );
+                          },
+                          child: _buildLoanCard(
+                            'Business Loan',
+                            'Expand now',
+                            Icons.store_outlined,
+                            const Color(0xFFFF6B35),
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const EducationLoanCalculatorScreen(),
-                            ),
-                          );
-                        },
-                        child: _buildLoanCard(
-                          'Education',
-                          'Study abroad',
-                          Icons.school_outlined,
-                          const Color(0xFF00BFA5),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const EducationLoanCalculatorScreen(),
+                              ),
+                            );
+                          },
+                          child: _buildLoanCard(
+                            'Education',
+                            'Study abroad',
+                            Icons.school_outlined,
+                            const Color(0xFF00BFA5),
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                // Bike Loan and Instant Cash cards removed
-              ],
+                    ],
+                  ),
+                  // Bike Loan and Instant Cash cards removed
+                ],
+              ),
             ),
-          ),
 
           const SizedBox(height: 24),
 
@@ -2051,7 +2236,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             child: Icon(
               icon,
               color: iconBgColor,
-              size: 24,
+              size: 32,
             ),
           ),
           const SizedBox(height: 12),

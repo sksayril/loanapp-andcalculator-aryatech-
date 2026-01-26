@@ -199,6 +199,56 @@ class LoanApiService {
       }
     }
   }
+
+  /// Check if Apply Now button should be shown
+  /// Endpoint: GET /api/public/apply-now
+  static Future<ApplyNowStatus> checkApplyNowStatus() async {
+    try {
+      final uri = Uri.parse('$baseUrl/api/public/apply-now');
+      
+      final response = await http.get(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      ).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () {
+          throw Exception('Request timeout. Please check your internet connection.');
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> decodedData = json.decode(response.body);
+        
+        final bool success = decodedData['success'] as bool? ?? false;
+        final bool isActive = decodedData['isActive'] as bool? ?? false;
+        final String? description = decodedData['description'] as String?;
+        
+        return ApplyNowStatus(
+          success: success,
+          isActive: isActive,
+          description: description,
+        );
+      } else {
+        // If API fails, default to showing the button (backward compatibility)
+        return ApplyNowStatus(
+          success: false,
+          isActive: true,
+          description: null,
+        );
+      }
+    } catch (e) {
+      // If API fails, default to showing the button (backward compatibility)
+      print('Error checking Apply Now status: $e');
+      return ApplyNowStatus(
+        success: false,
+        isActive: true,
+        description: null,
+      );
+    }
+  }
 }
 
 /// API Response wrapper
@@ -251,6 +301,19 @@ class LoanCategory {
       'loanCount': loanCount,
     };
   }
+}
+
+/// Apply Now Status model
+class ApplyNowStatus {
+  final bool success;
+  final bool isActive;
+  final String? description;
+
+  ApplyNowStatus({
+    required this.success,
+    required this.isActive,
+    this.description,
+  });
 }
 
 /// Model class for loan data from API

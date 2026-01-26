@@ -47,6 +47,15 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Ignore warnings about missing classes (Play Core library not needed)
+            isMinifyEnabled = true
+        }
+    }
+    
+    // Configure R8 to be more lenient with missing classes
+    packaging {
+        jniLibs {
+            useLegacyPackaging = false
         }
     }
     
@@ -69,7 +78,6 @@ flutter {
 }
 
 dependencies {
-    // Google Play Core Library for split installs and deferred components
-    implementation("com.google.android.play:core:1.10.3")
-    implementation("com.google.android.play:core-ktx:1.8.1")
+    // Note: Play Core library removed due to SDK 34+ incompatibility
+    // If you need deferred components in the future, use Play Feature Delivery library instead
 }

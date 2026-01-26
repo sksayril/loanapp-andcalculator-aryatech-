@@ -10,24 +10,17 @@
 -keep class com.google.android.gms.ads.** { *; }
 -dontwarn com.google.android.gms.ads.**
 
-# Google Play Core Library (for deferred components and split installs)
-# Keep all Play Core classes
--keep class com.google.android.play.core.** { *; }
+# Google Play Core Library - Suppress warnings for classes Flutter references but we don't use
+# These are only needed if using deferred components, which we're not
+# Flutter references these classes but we don't use deferred components
 -dontwarn com.google.android.play.core.**
-
-# Specific Play Core classes that Flutter references
--keep class com.google.android.play.core.splitcompat.** { *; }
--keep class com.google.android.play.core.splitinstall.** { *; }
--keep class com.google.android.play.core.tasks.** { *; }
-
-# Flutter Play Store Split Application and deferred components
--keep class io.flutter.embedding.android.FlutterPlayStoreSplitApplication { *; }
--keep class io.flutter.embedding.engine.deferredcomponents.** { *; }
-
-# Suppress warnings for Play Core if not used (optional, but helps with R8)
--dontwarn com.google.android.play.core.splitcompat.SplitCompatApplication
+-dontwarn com.google.android.play.core.splitcompat.**
 -dontwarn com.google.android.play.core.splitinstall.**
 -dontwarn com.google.android.play.core.tasks.**
+
+# Flutter deferred components - suppress warnings since we're not using them
+-dontwarn io.flutter.embedding.android.FlutterPlayStoreSplitApplication
+-dontwarn io.flutter.embedding.engine.deferredcomponents.**
 
 # Keep native methods
 -keepclasseswithmembernames class * {

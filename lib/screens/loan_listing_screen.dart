@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:emi_calculatornew/services/loan_api_service.dart';
 import 'package:emi_calculatornew/providers/theme_provider.dart';
-// import 'package:emi_calculatornew/services/ad_helper.dart'; // COMMENTED OUT - ADS DISABLED
-// import 'package:google_mobile_ads/google_mobile_ads.dart'; // COMMENTED OUT - ADS DISABLED
+import 'package:emi_calculatornew/services/ad_helper.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:provider/provider.dart';
 import 'package:emi_calculatornew/widgets/skeleton_loader.dart';
 import 'package:emi_calculatornew/screens/loan_details_screen.dart';
@@ -34,6 +34,15 @@ class _LoanListingScreenState extends State<LoanListingScreen> {
   String? _errorMessage;
   bool _isRefreshing = false;
   int _totalCount = 0;
+  
+  // Rewarded ad variables
+  RewardedAd? _rewardedAd;
+  bool _isRewardedAdLoaded = false;
+  bool _isAdLoading = false;
+  
+  // Apply Now button visibility
+  bool _isApplyNowActive = false;
+  bool _isCheckingApplyNow = true;
 
   @override
   void initState() {
@@ -44,6 +53,172 @@ class _LoanListingScreenState extends State<LoanListingScreen> {
     }
     _fetchLoans();
     _loadCategories();
+    // Load rewarded ad on init
+    _loadRewardedAd();
+    // Check Apply Now status
+    _checkApplyNowStatus();
+  }
+
+  @override
+  void dispose() {
+    _rewardedAd?.dispose();
+    super.dispose();
+  }
+
+  // Load Rewarded Ad
+  Future<void> _loadRewardedAd() async {
+    if (_isAdLoading) return;
+    
+    setState(() {
+      _isAdLoading = true;
+    });
+    
+    print('→ Loading rewarded ad for Apply Now...');
+    _rewardedAd = await AdHelper.loadRewardedAd();
+    
+    if (_rewardedAd != null && mounted) {
+      setState(() {
+        _isRewardedAdLoaded = true;
+        _isAdLoading = false;
+      });
+      
+      print('✓ Rewarded ad loaded successfully');
+      
+      // Set full screen content callback
+      _rewardedAd!.fullScreenContentCallback = FullScreenContentCallback(
+        onAdShowedFullScreenContent: (ad) {
+          print('Rewarded ad showed full screen content');
+        },
+        onAdDismissedFullScreenContent: (ad) {
+          print('Rewarded ad dismissed');
+          ad.dispose();
+          setState(() {
+            _isRewardedAdLoaded = false;
+          });
+          _loadRewardedAd(); // Load next ad
+        },
+        onAdFailedToShowFullScreenContent: (ad, error) {
+          print('✗ Rewarded ad failed to show: ${error.message}');
+          ad.dispose();
+          setState(() {
+            _isRewardedAdLoaded = false;
+            _isAdLoading = false;
+          });
+          _loadRewardedAd(); // Load next ad
+        },
+        onAdImpression: (ad) {
+          print('Rewarded ad impression');
+        },
+      );
+    } else {
+      print('✗ Failed to load rewarded ad');
+      if (mounted) {
+        setState(() {
+          _isRewardedAdLoaded = false;
+          _isAdLoading = false;
+        });
+      }
+    }
+  }
+
+  // Show Rewarded Ad and Navigate
+  Future<void> _showRewardedAdAndNavigate(LoanApiData loan) async {
+    print('→ Attempting to show rewarded ad...');
+    print('  Ad loaded: $_isRewardedAdLoaded');
+    print('  Ad object: ${_rewardedAd != null}');
+    
+    if (_rewardedAd != null && _isRewardedAdLoaded) {
+      print('✓ Showing rewarded ad now');
+      
+      try {
+        await _rewardedAd!.show(
+          onUserEarnedReward: (ad, reward) {
+            print('✓ User earned reward: ${reward.amount} ${reward.type}');
+            // Navigate after user watches the ad
+            if (mounted) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => LoanDetailsScreen(loan: loan),
+                ),
+              );
+            }
+          },
+        );
+      } catch (e) {
+        print('✗ Error showing rewarded ad: $e');
+        // If ad fails to show, navigate anyway
+        if (mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => LoanDetailsScreen(loan: loan),
+            ),
+          );
+        }
+      }
+    } else {
+      print('⚠ Rewarded ad not ready, loading ad first...');
+      // If ad is not loaded, show loading dialog and try to load ad
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const Center(
+            child: CircularProgressIndicator(),
+          ),
+        );
+      }
+      
+      // Try to load ad one more time
+      await _loadRewardedAd();
+      
+      // Close loading dialog
+      if (mounted) Navigator.of(context).pop();
+      
+      if (_rewardedAd != null && _isRewardedAdLoaded && mounted) {
+        print('✓ Ad loaded on retry, showing now');
+        
+        try {
+          await _rewardedAd!.show(
+            onUserEarnedReward: (ad, reward) {
+              print('✓ User earned reward: ${reward.amount} ${reward.type}');
+              // Navigate after user watches the ad
+              if (mounted) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => LoanDetailsScreen(loan: loan),
+                  ),
+                );
+              }
+            },
+          );
+        } catch (e) {
+          print('✗ Error showing rewarded ad on retry: $e');
+          // If ad fails to show, navigate anyway
+          if (mounted) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => LoanDetailsScreen(loan: loan),
+              ),
+            );
+          }
+        }
+      } else {
+        print('⚠ Could not load ad, navigating without ad');
+        // Navigate even if ad fails to load
+        if (mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => LoanDetailsScreen(loan: loan),
+            ),
+          );
+        }
+      }
+    }
   }
 
   Future<void> _loadCategories() async {
@@ -108,6 +283,28 @@ class _LoanListingScreenState extends State<LoanListingScreen> {
           _isLoading = false;
           _isRefreshing = false;
           _errorMessage = e.toString().replaceAll('Exception: ', '');
+        });
+      }
+    }
+  }
+
+  // Check Apply Now status from API
+  Future<void> _checkApplyNowStatus() async {
+    try {
+      final status = await LoanApiService.checkApplyNowStatus();
+      if (mounted) {
+        setState(() {
+          _isApplyNowActive = status.isActive;
+          _isCheckingApplyNow = false;
+        });
+      }
+    } catch (e) {
+      print('Error checking Apply Now status: $e');
+      // Default to showing button if API fails
+      if (mounted) {
+        setState(() {
+          _isApplyNowActive = true;
+          _isCheckingApplyNow = false;
         });
       }
     }
@@ -1292,83 +1489,80 @@ class _LoanListingScreenState extends State<LoanListingScreen> {
                   ],
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.only(top: 6, bottom: 0),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(20), // Pill shape
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: _getGradientColors(widget.primaryColor),
-                      ),
-                      boxShadow: [
-                        // Neumorphic shadows - light highlight on top-left
-                        BoxShadow(
-                          color: Colors.white.withOpacity(0.3),
-                          blurRadius: 5,
-                          offset: const Offset(-2, -2),
-                          spreadRadius: 0,
+              // Apply Now Button (only show if isActive is true)
+              if (!_isCheckingApplyNow && _isApplyNowActive)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6, bottom: 0),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20), // Pill shape
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: _getGradientColors(widget.primaryColor),
                         ),
-                        // Dark shadow on bottom-right - based on category color
-                        BoxShadow(
-                          color: widget.primaryColor.withOpacity(0.3),
-                          blurRadius: 8,
-                          offset: const Offset(2, 2),
-                          spreadRadius: 0,
-                        ),
-                        // Soft diffused shadow - based on category color
-                        BoxShadow(
-                          color: widget.primaryColor.withOpacity(0.2),
-                          blurRadius: 12,
-                          offset: const Offset(0, 3),
-                          spreadRadius: -1,
-                        ),
-                      ],
-                    ),
-                    child: ElevatedButton(
-                      onPressed: () {
-                        // Navigate directly to loan details (ads commented out)
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => LoanDetailsScreen(loan: loan),
+                        boxShadow: [
+                          // Neumorphic shadows - light highlight on top-left
+                          BoxShadow(
+                            color: Colors.white.withOpacity(0.3),
+                            blurRadius: 5,
+                            offset: const Offset(-2, -2),
+                            spreadRadius: 0,
                           ),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.transparent,
-                        shadowColor: Colors.transparent,
-                        padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 16),
-                        minimumSize: const Size(double.infinity, 34),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20), // Pill shape
-                        ),
-                        textStyle: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.8,
-                        ),
+                          // Dark shadow on bottom-right - based on category color
+                          BoxShadow(
+                            color: widget.primaryColor.withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(2, 2),
+                            spreadRadius: 0,
+                          ),
+                          // Soft diffused shadow - based on category color
+                          BoxShadow(
+                            color: widget.primaryColor.withOpacity(0.2),
+                            blurRadius: 12,
+                            offset: const Offset(0, 3),
+                            spreadRadius: -1,
+                          ),
+                        ],
                       ),
-                      child: const Text(
-                        'APPLY NOW',
-                        style: TextStyle(
-                          color: Colors.white,
-                          shadows: [
-                            Shadow(
-                              color: Colors.black38,
-                              blurRadius: 2,
-                              offset: Offset(0, 1),
-                            ),
-                          ],
+                      child: ElevatedButton(
+                        onPressed: () {
+                          // Show rewarded ad before navigating to loan details
+                          _showRewardedAdAndNavigate(loan);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 16),
+                          minimumSize: const Size(double.infinity, 34),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20), // Pill shape
+                          ),
+                          textStyle: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                        child: const Text(
+                          'APPLY NOW',
+                          style: TextStyle(
+                            color: Colors.white,
+                            shadows: [
+                              Shadow(
+                                color: Colors.black38,
+                                blurRadius: 2,
+                                offset: Offset(0, 1),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
                   ),
                 ),
-              ),
             ],
           ),
         ),
@@ -1501,87 +1695,84 @@ class _LoanListingScreenState extends State<LoanListingScreen> {
                       ),
                     ),
                   ),
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(24, 12, 24, MediaQuery.of(context).padding.bottom + 16),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(30), // Pill shape
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: _getGradientColors(widget.primaryColor),
-                          ),
-                          boxShadow: [
-                            // Neumorphic shadows - light highlight on top-left
-                            BoxShadow(
-                              color: Colors.white.withOpacity(0.3),
-                              blurRadius: 8,
-                              offset: const Offset(-3, -3),
-                              spreadRadius: 0,
+                  // Apply Now Button (only show if isActive is true)
+                  if (!_isCheckingApplyNow && _isApplyNowActive)
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(24, 12, 24, MediaQuery.of(context).padding.bottom + 16),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(30), // Pill shape
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: _getGradientColors(widget.primaryColor),
                             ),
-                            // Dark shadow on bottom-right - based on category color
-                            BoxShadow(
-                              color: widget.primaryColor.withOpacity(0.4),
-                              blurRadius: 12,
-                              offset: const Offset(4, 4),
-                              spreadRadius: 0,
-                            ),
-                            // Soft diffused shadow - based on category color
-                            BoxShadow(
-                              color: widget.primaryColor.withOpacity(0.3),
-                              blurRadius: 20,
-                              offset: const Offset(0, 6),
-                              spreadRadius: -2,
-                            ),
-                          ],
-                        ),
-                        child: ElevatedButton(
-                          onPressed: () {
-                            // Navigate directly to loan details (ads disabled)
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => LoanDetailsScreen(loan: loan),
+                            boxShadow: [
+                              // Neumorphic shadows - light highlight on top-left
+                              BoxShadow(
+                                color: Colors.white.withOpacity(0.3),
+                                blurRadius: 8,
+                                offset: const Offset(-3, -3),
+                                spreadRadius: 0,
                               ),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.transparent,
-                            shadowColor: Colors.transparent,
-                            padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 32),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(30), // Pill shape
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.open_in_browser, color: Colors.white, size: 20),
-                              const SizedBox(width: 10),
-                              const Text(
-                                'APPLY NOW',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 1.5,
-                                  shadows: [
-                                    Shadow(
-                                      color: Colors.black38,
-                                      blurRadius: 3,
-                                      offset: Offset(0, 1.5),
-                                    ),
-                                  ],
-                                ),
+                              // Dark shadow on bottom-right - based on category color
+                              BoxShadow(
+                                color: widget.primaryColor.withOpacity(0.4),
+                                blurRadius: 12,
+                                offset: const Offset(4, 4),
+                                spreadRadius: 0,
+                              ),
+                              // Soft diffused shadow - based on category color
+                              BoxShadow(
+                                color: widget.primaryColor.withOpacity(0.3),
+                                blurRadius: 20,
+                                offset: const Offset(0, 6),
+                                spreadRadius: -2,
                               ),
                             ],
+                          ),
+                          child: ElevatedButton(
+                            onPressed: () {
+                              // Show rewarded ad before navigating to loan details
+                              _showRewardedAdAndNavigate(loan);
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              shadowColor: Colors.transparent,
+                              padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 32),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(30), // Pill shape
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.open_in_browser, color: Colors.white, size: 20),
+                                const SizedBox(width: 10),
+                                const Text(
+                                  'APPLY NOW',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 1.5,
+                                    shadows: [
+                                      Shadow(
+                                        color: Colors.black38,
+                                        blurRadius: 3,
+                                        offset: Offset(0, 1.5),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
                 ],
               ),
             );

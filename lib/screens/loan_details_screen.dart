@@ -2,12 +2,196 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:emi_calculatornew/providers/theme_provider.dart';
 import 'package:emi_calculatornew/services/loan_api_service.dart';
+import 'package:emi_calculatornew/services/ad_helper.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class LoanDetailsScreen extends StatelessWidget {
+class LoanDetailsScreen extends StatefulWidget {
   final LoanApiData loan;
 
   const LoanDetailsScreen({super.key, required this.loan});
+
+  @override
+  State<LoanDetailsScreen> createState() => _LoanDetailsScreenState();
+}
+
+class _LoanDetailsScreenState extends State<LoanDetailsScreen> {
+  // Rewarded ad variables
+  RewardedAd? _rewardedAd;
+  bool _isRewardedAdLoaded = false;
+  bool _isAdLoading = false;
+  
+  // Apply Now button visibility
+  bool _isApplyNowActive = false;
+  bool _isCheckingApplyNow = true;
+
+  @override
+  void initState() {
+    super.initState();
+    // Load rewarded ad on init
+    _loadRewardedAd();
+    // Check Apply Now status
+    _checkApplyNowStatus();
+  }
+
+  @override
+  void dispose() {
+    _rewardedAd?.dispose();
+    super.dispose();
+  }
+
+  // Load Rewarded Ad
+  Future<void> _loadRewardedAd() async {
+    if (_isAdLoading) return;
+    
+    setState(() {
+      _isAdLoading = true;
+    });
+    
+    print('→ Loading rewarded ad for Apply Now...');
+    _rewardedAd = await AdHelper.loadRewardedAd();
+    
+    if (_rewardedAd != null && mounted) {
+      setState(() {
+        _isRewardedAdLoaded = true;
+        _isAdLoading = false;
+      });
+      
+      print('✓ Rewarded ad loaded successfully');
+      
+      // Set full screen content callback
+      _rewardedAd!.fullScreenContentCallback = FullScreenContentCallback(
+        onAdShowedFullScreenContent: (ad) {
+          print('Rewarded ad showed full screen content');
+        },
+        onAdDismissedFullScreenContent: (ad) {
+          print('Rewarded ad dismissed');
+          ad.dispose();
+          setState(() {
+            _isRewardedAdLoaded = false;
+          });
+          _loadRewardedAd(); // Load next ad
+        },
+        onAdFailedToShowFullScreenContent: (ad, error) {
+          print('✗ Rewarded ad failed to show: ${error.message}');
+          ad.dispose();
+          setState(() {
+            _isRewardedAdLoaded = false;
+            _isAdLoading = false;
+          });
+          _loadRewardedAd(); // Load next ad
+        },
+        onAdImpression: (ad) {
+          print('Rewarded ad impression');
+        },
+      );
+    } else {
+      print('✗ Failed to load rewarded ad');
+      if (mounted) {
+        setState(() {
+          _isRewardedAdLoaded = false;
+          _isAdLoading = false;
+        });
+      }
+    }
+  }
+
+  // Show Rewarded Ad and Launch URL
+  Future<void> _showRewardedAdAndLaunchURL() async {
+    print('→ Attempting to show rewarded ad...');
+    print('  Ad loaded: $_isRewardedAdLoaded');
+    print('  Ad object: ${_rewardedAd != null}');
+    
+    if (_rewardedAd != null && _isRewardedAdLoaded) {
+      print('✓ Showing rewarded ad now');
+      
+      try {
+        await _rewardedAd!.show(
+          onUserEarnedReward: (ad, reward) {
+            print('✓ User earned reward: ${reward.amount} ${reward.type}');
+            // Launch URL after user watches the ad
+            if (mounted) {
+              _launchURL(context, widget.loan.url);
+            }
+          },
+        );
+      } catch (e) {
+        print('✗ Error showing rewarded ad: $e');
+        // If ad fails to show, launch URL anyway
+        if (mounted) {
+          _launchURL(context, widget.loan.url);
+        }
+      }
+    } else {
+      print('⚠ Rewarded ad not ready, loading ad first...');
+      // If ad is not loaded, show loading dialog and try to load ad
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const Center(
+            child: CircularProgressIndicator(),
+          ),
+        );
+      }
+      
+      // Try to load ad one more time
+      await _loadRewardedAd();
+      
+      // Close loading dialog
+      if (mounted) Navigator.of(context).pop();
+      
+      if (_rewardedAd != null && _isRewardedAdLoaded && mounted) {
+        print('✓ Ad loaded on retry, showing now');
+        
+        try {
+          await _rewardedAd!.show(
+            onUserEarnedReward: (ad, reward) {
+              print('✓ User earned reward: ${reward.amount} ${reward.type}');
+              // Launch URL after user watches the ad
+              if (mounted) {
+                _launchURL(context, widget.loan.url);
+              }
+            },
+          );
+        } catch (e) {
+          print('✗ Error showing rewarded ad on retry: $e');
+          // If ad fails to show, launch URL anyway
+          if (mounted) {
+            _launchURL(context, widget.loan.url);
+          }
+        }
+      } else {
+        print('⚠ Could not load ad, launching URL without ad');
+        // Launch URL even if ad fails to load
+        if (mounted) {
+          _launchURL(context, widget.loan.url);
+        }
+      }
+    }
+  }
+
+  // Check Apply Now status from API
+  Future<void> _checkApplyNowStatus() async {
+    try {
+      final status = await LoanApiService.checkApplyNowStatus();
+      if (mounted) {
+        setState(() {
+          _isApplyNowActive = status.isActive;
+          _isCheckingApplyNow = false;
+        });
+      }
+    } catch (e) {
+      print('Error checking Apply Now status: $e');
+      // Default to showing button if API fails
+      if (mounted) {
+        setState(() {
+          _isApplyNowActive = true;
+          _isCheckingApplyNow = false;
+        });
+      }
+    }
+  }
 
   Future<void> _launchURL(BuildContext context, String? url) async {
     if (url == null || url.isEmpty) {
@@ -49,7 +233,7 @@ class LoanDetailsScreen extends StatelessWidget {
           : Colors.grey.shade50,
       appBar: AppBar(
         title: Text(
-          '${loan.category?.name ?? 'Personal'} Loan - Details',
+          '${widget.loan.category?.name ?? 'Personal'} Loan - Details',
           style: TextStyle(
             color: themeProvider.textPrimary,
             fontWeight: FontWeight.w600,
@@ -118,7 +302,7 @@ class LoanDetailsScreen extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              loan.bankName ?? loan.companyName ?? 'Bank Name',
+                              widget.loan.bankName ?? widget.loan.companyName ?? 'Bank Name',
                               style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
@@ -127,7 +311,7 @@ class LoanDetailsScreen extends StatelessWidget {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              loan.title ?? 'Instant Cash Loan',
+                              widget.loan.title ?? 'Instant Cash Loan',
                               style: TextStyle(
                                 fontSize: 14,
                                 color: themeProvider.textSecondary,
@@ -197,7 +381,7 @@ class LoanDetailsScreen extends StatelessWidget {
                     context,
                     Icons.percent,
                     'Interest Rate',
-                    'Starting from around ${loan.interestRate ?? '10.50'}% per annum (may vary based on profile)',
+                    'Starting from around ${widget.loan.interestRate ?? '10.50'}% per annum (may vary based on profile)',
                     themeProvider,
                   ),
                   const SizedBox(height: 16),
@@ -301,7 +485,7 @@ class LoanDetailsScreen extends StatelessWidget {
                     context,
                     Icons.currency_rupee,
                     'Minimum Income',
-                    'As per ${loan.bankName ?? loan.companyName ?? 'lender'} norms',
+                    'As per ${widget.loan.bankName ?? widget.loan.companyName ?? 'lender'} norms',
                     themeProvider,
                   ),
                 ],
@@ -310,46 +494,45 @@ class LoanDetailsScreen extends StatelessWidget {
 
             const SizedBox(height: 24),
 
-            // Apply Now Button
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    _launchURL(context, loan.url);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2196F3),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+            // Apply Now Button (only show if isActive is true)
+            if (!_isCheckingApplyNow && _isApplyNowActive)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _showRewardedAdAndLaunchURL,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF2196F3),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 2,
                     ),
-                    elevation: 2,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.open_in_browser,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 12),
-                      const Text(
-                        'APPLY NOW',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.2,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.open_in_browser,
+                          color: Colors.white,
+                          size: 20,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 12),
+                        const Text(
+                          'APPLY NOW',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
 
             const SizedBox(height: 32),
           ],

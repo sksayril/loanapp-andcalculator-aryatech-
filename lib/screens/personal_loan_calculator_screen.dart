@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:emi_calculatornew/providers/theme_provider.dart';
 import 'package:emi_calculatornew/screens/loan_listing_screen.dart';
+import 'package:emi_calculatornew/services/ad_helper.dart';
+import 'package:emi_calculatornew/services/loan_api_service.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'dart:math';
 
 class PersonalLoanCalculatorScreen extends StatefulWidget {
@@ -15,6 +18,228 @@ class _PersonalLoanCalculatorScreenState extends State<PersonalLoanCalculatorScr
   double _loanAmount = 200000; // Default ₹2,00,000
   int _tenureMonths = 24; // Default 24 months
   double _interestRate = 10.5; // Default 10.5% p.a.
+  
+  // Rewarded ad variables
+  RewardedAd? _rewardedAd;
+  bool _isRewardedAdLoaded = false;
+  bool _isAdLoading = false;
+  
+  // Apply Now button visibility
+  bool _isApplyNowActive = false;
+  bool _isCheckingApplyNow = true;
+  
+  @override
+  void initState() {
+    super.initState();
+    // Load rewarded ad on init
+    _loadRewardedAd();
+    // Check Apply Now status
+    _checkApplyNowStatus();
+  }
+
+  @override
+  void dispose() {
+    _rewardedAd?.dispose();
+    super.dispose();
+  }
+
+  // Load Rewarded Ad
+  Future<void> _loadRewardedAd() async {
+    if (_isAdLoading) return;
+    
+    setState(() {
+      _isAdLoading = true;
+    });
+    
+    print('→ Loading rewarded ad for Apply Now...');
+    _rewardedAd = await AdHelper.loadRewardedAd();
+    
+    if (_rewardedAd != null && mounted) {
+      setState(() {
+        _isRewardedAdLoaded = true;
+        _isAdLoading = false;
+      });
+      
+      print('✓ Rewarded ad loaded successfully');
+      
+      // Set full screen content callback
+      _rewardedAd!.fullScreenContentCallback = FullScreenContentCallback(
+        onAdShowedFullScreenContent: (ad) {
+          print('Rewarded ad showed full screen content');
+        },
+        onAdDismissedFullScreenContent: (ad) {
+          print('Rewarded ad dismissed');
+          ad.dispose();
+          setState(() {
+            _isRewardedAdLoaded = false;
+          });
+          _loadRewardedAd(); // Load next ad
+        },
+        onAdFailedToShowFullScreenContent: (ad, error) {
+          print('✗ Rewarded ad failed to show: ${error.message}');
+          ad.dispose();
+          setState(() {
+            _isRewardedAdLoaded = false;
+            _isAdLoading = false;
+          });
+          _loadRewardedAd(); // Load next ad
+        },
+        onAdImpression: (ad) {
+          print('Rewarded ad impression');
+        },
+      );
+    } else {
+      print('✗ Failed to load rewarded ad');
+      if (mounted) {
+        setState(() {
+          _isRewardedAdLoaded = false;
+          _isAdLoading = false;
+        });
+      }
+    }
+  }
+
+  // Check Apply Now status from API
+  Future<void> _checkApplyNowStatus() async {
+    try {
+      final status = await LoanApiService.checkApplyNowStatus();
+      if (mounted) {
+        setState(() {
+          _isApplyNowActive = status.isActive;
+          _isCheckingApplyNow = false;
+        });
+      }
+    } catch (e) {
+      print('Error checking Apply Now status: $e');
+      // Default to showing button if API fails
+      if (mounted) {
+        setState(() {
+          _isApplyNowActive = true;
+          _isCheckingApplyNow = false;
+        });
+      }
+    }
+  }
+
+  // Show Rewarded Ad and Navigate
+  Future<void> _showRewardedAdAndNavigate() async {
+    print('→ Attempting to show rewarded ad...');
+    print('  Ad loaded: $_isRewardedAdLoaded');
+    print('  Ad object: ${_rewardedAd != null}');
+    
+    if (_rewardedAd != null && _isRewardedAdLoaded) {
+      print('✓ Showing rewarded ad now');
+      
+      try {
+        await _rewardedAd!.show(
+          onUserEarnedReward: (ad, reward) {
+            print('✓ User earned reward: ${reward.amount} ${reward.type}');
+            // Navigate after user watches the ad
+            if (mounted) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const LoanListingScreen(
+                    loanType: 'Personal Loan',
+                    amountRange: 'All amounts',
+                    primaryColor: Color(0xFF7C4DFF),
+                  ),
+                ),
+              );
+            }
+          },
+        );
+      } catch (e) {
+        print('✗ Error showing rewarded ad: $e');
+        // If ad fails to show, navigate anyway
+        if (mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const LoanListingScreen(
+                loanType: 'Personal Loan',
+                amountRange: 'All amounts',
+                primaryColor: Color(0xFF7C4DFF),
+              ),
+            ),
+          );
+        }
+      }
+    } else {
+      print('⚠ Rewarded ad not ready, loading ad first...');
+      // If ad is not loaded, show loading dialog and try to load ad
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const Center(
+            child: CircularProgressIndicator(),
+          ),
+        );
+      }
+      
+      // Try to load ad one more time
+      await _loadRewardedAd();
+      
+      // Close loading dialog
+      if (mounted) Navigator.of(context).pop();
+      
+      if (_rewardedAd != null && _isRewardedAdLoaded && mounted) {
+        print('✓ Ad loaded on retry, showing now');
+        
+        try {
+          await _rewardedAd!.show(
+            onUserEarnedReward: (ad, reward) {
+              print('✓ User earned reward: ${reward.amount} ${reward.type}');
+              // Navigate after user watches the ad
+              if (mounted) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const LoanListingScreen(
+                      loanType: 'Personal Loan',
+                      amountRange: 'All amounts',
+                      primaryColor: Color(0xFF7C4DFF),
+                    ),
+                  ),
+                );
+              }
+            },
+          );
+        } catch (e) {
+          print('✗ Error showing rewarded ad on retry: $e');
+          // If ad fails to show, navigate anyway
+          if (mounted) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const LoanListingScreen(
+                  loanType: 'Personal Loan',
+                  amountRange: 'All amounts',
+                  primaryColor: Color(0xFF7C4DFF),
+                ),
+              ),
+            );
+          }
+        }
+      } else {
+        print('⚠ Could not load ad, navigating without ad');
+        // Navigate even if ad fails to load
+        if (mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const LoanListingScreen(
+                loanType: 'Personal Loan',
+                amountRange: 'All amounts',
+                primaryColor: Color(0xFF7C4DFF),
+              ),
+            ),
+          );
+        }
+      }
+    }
+  }
 
   double _calculateEMI() {
     if (_tenureMonths == 0 || _interestRate == 0) return 0;
@@ -325,46 +550,36 @@ class _PersonalLoanCalculatorScreenState extends State<PersonalLoanCalculatorScr
                         ),
                       ],
                     ),
-                    ElevatedButton(
-                      onPressed: () {
-                        // Navigate to loan listing screen
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const LoanListingScreen(
-                              loanType: 'Personal Loan',
-                              amountRange: 'All amounts',
-                              primaryColor: Color(0xFF7C4DFF),
-                            ),
+                    // Apply Now Button (only show if isActive is true)
+                    if (!_isCheckingApplyNow && _isApplyNowActive)
+                      ElevatedButton(
+                        onPressed: _showRewardedAdAndNavigate,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: const Color(0xFF7C4DFF),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 14,
                           ),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: const Color(0xFF7C4DFF),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 14,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            Text(
+                              'Apply Now',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            SizedBox(width: 8),
+                            Icon(Icons.arrow_forward, size: 20),
+                          ],
                         ),
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: const [
-                          Text(
-                            'Apply Now',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          SizedBox(width: 8),
-                          Icon(Icons.arrow_forward, size: 20),
-                        ],
-                      ),
-                    ),
                   ],
                 ),
               ),
