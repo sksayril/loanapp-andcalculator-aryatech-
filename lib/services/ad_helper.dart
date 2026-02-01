@@ -75,6 +75,24 @@ class AdHelper {
       : 'ca-app-pub-3940256099942544/2934735716'; // Test banner ad for iOS
   }
 
+  // Interstitial Ad ID
+  static String get interstitialAdUnitId {
+    if (_useTesting) {
+      // Test ad ID
+      return Platform.isAndroid
+        ? 'ca-app-pub-3940256099942544/1033173712'  // Test interstitial ad
+        : 'ca-app-pub-3940256099942544/4411468910';
+    }
+    
+    if (Platform.isAndroid) {
+      return 'ca-app-pub-3422720384917984/7888708548';
+    } else if (Platform.isIOS) {
+      return 'ca-app-pub-3422720384917984/7888708548';
+    } else {
+      throw UnsupportedError('Unsupported platform');
+    }
+  }
+
   // Initialize Mobile Ads SDK
   static Future<void> initialize() async {
     await MobileAds.instance.initialize();
@@ -253,6 +271,48 @@ class AdHelper {
     
     bannerAd.load();
     return bannerAd;
+  }
+
+  // Create and load an interstitial ad
+  static Future<InterstitialAd?> loadInterstitialAd() async {
+    print('→ Loading InterstitialAd with ID: $interstitialAdUnitId');
+    print('  Testing mode: $_useTesting');
+    
+    final completer = Completer<InterstitialAd?>();
+    
+    try {
+      InterstitialAd.load(
+        adUnitId: interstitialAdUnitId,
+        request: const AdRequest(),
+        adLoadCallback: InterstitialAdLoadCallback(
+          onAdLoaded: (ad) {
+            print('✓ InterstitialAd loaded successfully');
+            if (!completer.isCompleted) {
+              completer.complete(ad);
+            }
+          },
+          onAdFailedToLoad: (error) {
+            print('✗ InterstitialAd failed to load: ${error.message}');
+            print('  Code: ${error.code}, Domain: ${error.domain}');
+            if (!completer.isCompleted) {
+              completer.complete(null);
+            }
+          },
+        ),
+      );
+      
+      // Wait for the ad to load (timeout after 10 seconds)
+      return await completer.future.timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          print('✗ InterstitialAd loading timed out');
+          return null;
+        },
+      );
+    } catch (e) {
+      print('✗ Exception loading InterstitialAd: $e');
+      return null;
+    }
   }
 }
 

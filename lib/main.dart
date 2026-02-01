@@ -31,6 +31,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:emi_calculatornew/onboarding_screen.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:emi_calculatornew/services/ad_helper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -122,6 +123,12 @@ class _HomePageState extends State<HomePage> {
   bool _isPageChanging = false;
   late List<Widget> _screens;
 
+  // Interstitial ad variables for Loans navigation
+  InterstitialAd? _loansNavInterstitialAd;
+  bool _isLoansNavAdLoaded = false;
+  bool _isLoansNavAdLoading = false;
+  bool _isShowingLoansNavAd = false;
+
   @override
   void initState() {
     super.initState();
@@ -134,6 +141,9 @@ class _HomePageState extends State<HomePage> {
       const CashCalculatorScreen(),
       const ProfileScreen(),
     ];
+    
+    // Load interstitial ad for Loans navigation
+    _loadLoansNavInterstitialAd();
   }
 
   void _onItemTapped(int index) {
@@ -143,7 +153,13 @@ class _HomePageState extends State<HomePage> {
     // If already on the selected page, don't do anything
     if (_selectedIndex == index) return;
     
-    // Update selected index immediately for responsive UI
+    // If navigating to Loans tab (index 1), show interstitial ad first
+    if (index == 1) {
+      _showLoansNavInterstitialAd();
+      return;
+    }
+    
+    // For other tabs, navigate directly
     setState(() {
       _selectedIndex = index;
       _isPageChanging = true;
@@ -206,7 +222,172 @@ class _HomePageState extends State<HomePage> {
   @override
   void dispose() {
     _pageController.dispose();
+    _loansNavInterstitialAd?.dispose();
     super.dispose();
+  }
+
+  // Load Interstitial Ad for Loans Navigation
+  Future<void> _loadLoansNavInterstitialAd() async {
+    if (_isLoansNavAdLoading) return;
+    
+    setState(() {
+      _isLoansNavAdLoading = true;
+    });
+    
+    print('→ Loading interstitial ad for Loans navigation...');
+    _loansNavInterstitialAd = await AdHelper.loadInterstitialAd();
+    
+    if (_loansNavInterstitialAd != null && mounted) {
+      setState(() {
+        _isLoansNavAdLoaded = true;
+        _isLoansNavAdLoading = false;
+      });
+      
+      print('✓ Loans nav interstitial ad loaded successfully');
+      
+      // Set full screen content callback
+      _loansNavInterstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
+        onAdShowedFullScreenContent: (ad) {
+          print('✓ Loans nav interstitial ad showed full screen content');
+        },
+        onAdDismissedFullScreenContent: (ad) {
+          print('✓ Loans nav interstitial ad dismissed by user');
+          _isShowingLoansNavAd = false;
+          ad.dispose();
+          setState(() {
+            _loansNavInterstitialAd = null;
+            _isLoansNavAdLoaded = false;
+            _isLoansNavAdLoading = false;
+          });
+          // Navigate to Loans tab after ad is dismissed
+          _navigateToLoansTab();
+          // Preload next ad for future clicks
+          _loadLoansNavInterstitialAd();
+        },
+        onAdFailedToShowFullScreenContent: (ad, error) {
+          print('✗ Loans nav interstitial ad failed to show: ${error.message}');
+          _isShowingLoansNavAd = false;
+          ad.dispose();
+          setState(() {
+            _loansNavInterstitialAd = null;
+            _isLoansNavAdLoaded = false;
+            _isLoansNavAdLoading = false;
+          });
+          // Navigate anyway if ad fails to show
+          _navigateToLoansTab();
+          // Preload next ad for future clicks
+          _loadLoansNavInterstitialAd();
+        },
+        onAdImpression: (ad) {
+          print('✓ Loans nav interstitial ad impression recorded');
+        },
+        onAdClicked: (ad) {
+          print('✓ Loans nav interstitial ad clicked');
+        },
+      );
+    } else {
+      print('✗ Failed to load Loans nav interstitial ad');
+      if (mounted) {
+        setState(() {
+          _isLoansNavAdLoaded = false;
+          _isLoansNavAdLoading = false;
+        });
+      }
+    }
+  }
+
+  // Navigate to Loans tab (without ad)
+  void _navigateToLoansTab() {
+    if (_isPageChanging) return;
+    if (_selectedIndex == 1) return;
+    
+    setState(() {
+      _selectedIndex = 1;
+      _isPageChanging = true;
+    });
+    
+    _pageController.animateToPage(
+      1,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    ).then((_) {
+      if (mounted) {
+        setState(() {
+          _isPageChanging = false;
+        });
+      }
+    }).catchError((error) {
+      if (mounted) {
+        setState(() {
+          _isPageChanging = false;
+        });
+      }
+    });
+  }
+
+  // Show Interstitial Ad and Navigate to Loans
+  Future<void> _showLoansNavInterstitialAd() async {
+    // Prevent multiple simultaneous ad show attempts
+    if (_isShowingLoansNavAd) {
+      print('⚠ Loans nav ad is already being shown, ignoring click');
+      return;
+    }
+    
+    print('→ Attempting to show Loans nav interstitial ad...');
+    print('  Ad loaded: $_isLoansNavAdLoaded');
+    print('  Ad object: ${_loansNavInterstitialAd != null}');
+    
+    // If ad is loaded and ready, show it
+    if (_loansNavInterstitialAd != null && _isLoansNavAdLoaded) {
+      print('✓ Showing Loans nav interstitial ad now');
+      _isShowingLoansNavAd = true;
+      
+      try {
+        _loansNavInterstitialAd!.show();
+        // Don't navigate here - navigation happens in onAdDismissedFullScreenContent callback
+        return;
+      } catch (e) {
+        print('✗ Error showing Loans nav interstitial ad: $e');
+        _isShowingLoansNavAd = false;
+        _loansNavInterstitialAd?.dispose();
+        setState(() {
+          _loansNavInterstitialAd = null;
+          _isLoansNavAdLoaded = false;
+        });
+      }
+    }
+    
+    // If ad is not loaded or failed to show, try to load one immediately
+    print('⚠ Loans nav interstitial ad not ready, attempting to load on-demand...');
+    
+    // Try to load ad immediately
+    await _loadLoansNavInterstitialAd();
+    
+    // Try to show the newly loaded ad
+    if (_loansNavInterstitialAd != null && _isLoansNavAdLoaded && mounted) {
+      print('✓ Loans nav ad loaded on-demand, showing now');
+      _isShowingLoansNavAd = true;
+      try {
+        _loansNavInterstitialAd!.show();
+        // Don't navigate here - navigation happens in onAdDismissedFullScreenContent callback
+        return;
+      } catch (e) {
+        print('✗ Error showing on-demand Loans nav interstitial ad: $e');
+        _isShowingLoansNavAd = false;
+        _loansNavInterstitialAd?.dispose();
+        setState(() {
+          _loansNavInterstitialAd = null;
+          _isLoansNavAdLoaded = false;
+        });
+      }
+    }
+    
+    // If we still can't show an ad, navigate without ad
+    print('⚠ Could not show Loans nav ad, navigating without ad');
+    _isShowingLoansNavAd = false;
+    _navigateToLoansTab();
+    // Preload ad for next time
+    _loadLoansNavInterstitialAd();
   }
 
   @override
@@ -634,6 +815,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   late List<Animation<Offset>> _slideAnimations;
   late List<Animation<double>> _scaleAnimations;
 
+  // Interstitial ad variables
+  InterstitialAd? _interstitialAd;
+  bool _isInterstitialAdLoaded = false;
+  bool _isInterstitialAdLoading = false;
+  bool _isShowingAd = false; // Prevent multiple simultaneous ad shows
+
   @override
   void initState() {
     super.initState();
@@ -686,12 +873,175 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     });
 
     _animationController.forward();
+    
+    // Load interstitial ad on init
+    _loadInterstitialAd();
   }
 
   @override
   void dispose() {
     _animationController.dispose();
+    _interstitialAd?.dispose();
     super.dispose();
+  }
+
+  // Load Interstitial Ad
+  Future<void> _loadInterstitialAd() async {
+    if (_isInterstitialAdLoading) return;
+    
+    setState(() {
+      _isInterstitialAdLoading = true;
+    });
+    
+    print('→ Loading interstitial ad for loan cards...');
+    _interstitialAd = await AdHelper.loadInterstitialAd();
+    
+    if (_interstitialAd != null && mounted) {
+      setState(() {
+        _isInterstitialAdLoaded = true;
+        _isInterstitialAdLoading = false;
+      });
+      
+      print('✓ Interstitial ad loaded successfully');
+      
+      // Set full screen content callback BEFORE showing
+      _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
+        onAdShowedFullScreenContent: (ad) {
+          print('✓ Interstitial ad showed full screen content');
+        },
+        onAdDismissedFullScreenContent: (ad) {
+          print('✓ Interstitial ad dismissed by user');
+          _isShowingAd = false;
+          ad.dispose();
+          setState(() {
+            _interstitialAd = null;
+            _isInterstitialAdLoaded = false;
+            _isInterstitialAdLoading = false;
+          });
+          // Navigate to Loans tab after ad is dismissed
+          if (mounted) {
+            widget.onInstantLoanTap();
+          }
+          // Preload next ad for future clicks
+          _loadInterstitialAd();
+        },
+        onAdFailedToShowFullScreenContent: (ad, error) {
+          print('✗ Interstitial ad failed to show: ${error.message}');
+          print('  Code: ${error.code}, Domain: ${error.domain}');
+          _isShowingAd = false;
+          ad.dispose();
+          setState(() {
+            _interstitialAd = null;
+            _isInterstitialAdLoaded = false;
+            _isInterstitialAdLoading = false;
+          });
+          // Navigate anyway if ad fails to show
+          if (mounted) {
+            widget.onInstantLoanTap();
+          }
+          // Preload next ad for future clicks
+          _loadInterstitialAd();
+        },
+        onAdImpression: (ad) {
+          print('✓ Interstitial ad impression recorded');
+        },
+        onAdClicked: (ad) {
+          print('✓ Interstitial ad clicked');
+        },
+      );
+    } else {
+      print('✗ Failed to load interstitial ad');
+      if (mounted) {
+        setState(() {
+          _isInterstitialAdLoaded = false;
+          _isInterstitialAdLoading = false;
+        });
+      }
+    }
+  }
+
+  // Show Interstitial Ad and Navigate
+  Future<void> _showInterstitialAdAndNavigate() async {
+    // Prevent multiple simultaneous ad show attempts
+    if (_isShowingAd) {
+      print('⚠ Ad is already being shown, ignoring click');
+      return;
+    }
+    
+    print('→ Attempting to show interstitial ad...');
+    print('  Ad loaded: $_isInterstitialAdLoaded');
+    print('  Ad object: ${_interstitialAd != null}');
+    
+    // If ad is loaded and ready, show it
+    if (_interstitialAd != null && _isInterstitialAdLoaded) {
+      print('✓ Showing interstitial ad now');
+      _isShowingAd = true;
+      
+      try {
+        _interstitialAd!.show();
+        // Don't navigate here - navigation happens in onAdDismissedFullScreenContent callback
+        return;
+      } catch (e) {
+        print('✗ Error showing interstitial ad: $e');
+        _isShowingAd = false;
+        // Dispose the failed ad
+        _interstitialAd?.dispose();
+        setState(() {
+          _interstitialAd = null;
+          _isInterstitialAdLoaded = false;
+        });
+      }
+    }
+    
+    // If ad is not loaded or failed to show, try to load one immediately
+    print('⚠ Interstitial ad not ready, attempting to load on-demand...');
+    
+    // Show loading indicator
+    if (mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+    
+    // Try to load ad immediately
+    await _loadInterstitialAd();
+    
+    // Close loading dialog
+    if (mounted) {
+      Navigator.of(context).pop();
+    }
+    
+    // Try to show the newly loaded ad
+    if (_interstitialAd != null && _isInterstitialAdLoaded && mounted) {
+      print('✓ Ad loaded on-demand, showing now');
+      _isShowingAd = true;
+      try {
+        _interstitialAd!.show();
+        // Don't navigate here - navigation happens in onAdDismissedFullScreenContent callback
+        return;
+      } catch (e) {
+        print('✗ Error showing on-demand interstitial ad: $e');
+        _isShowingAd = false;
+        _interstitialAd?.dispose();
+        setState(() {
+          _interstitialAd = null;
+          _isInterstitialAdLoaded = false;
+        });
+      }
+    }
+    
+    // If we still can't show an ad, navigate without ad
+    print('⚠ Could not show ad, navigating without ad');
+    _isShowingAd = false;
+    if (mounted) {
+      widget.onInstantLoanTap();
+    }
+    // Preload ad for next time
+    _loadInterstitialAd();
   }
 
   @override
@@ -839,7 +1189,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         Colors.pink.shade600,
                         '₹1,00,000',
                         'assets/lottiegif/Fake3Dvectorcoin.json',
-                        widget.onInstantLoanTap,
+                        _showInterstitialAdAndNavigate,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -852,7 +1202,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         Colors.deepOrange.shade600,
                         '₹5,00,000',
                         'assets/lottiegif/Fake3Dvectorcoin.json',
-                        widget.onInstantLoanTap,
+                        _showInterstitialAdAndNavigate,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -865,7 +1215,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         Colors.blue.shade600,
                         '₹10,00,000',
                         'assets/lottiegif/Fake3Dvectorcoin.json',
-                        widget.onInstantLoanTap,
+                        _showInterstitialAdAndNavigate,
                       ),
                     ),
                   ],
