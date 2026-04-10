@@ -385,7 +385,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
             title: 'Privacy Policy',
             subtitle: null,
             onTap: () {
-              _showPrivacyPolicyDialog();
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const PrivacyPolicyScreen(),
+                ),
+              );
             },
             showArrow: true,
           ),
@@ -851,6 +856,223 @@ class _ProfileScreenState extends State<ProfileScreen> {
           },
         );
       },
+    );
+  }
+}
+
+class PrivacyPolicyScreen extends StatelessWidget {
+  const PrivacyPolicyScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
+    return Scaffold(
+      backgroundColor: themeProvider.backgroundColor,
+      appBar: AppBar(
+        title: const Text('Privacy Policy & Disclaimer'),
+        backgroundColor: themeProvider.cardBackground,
+        elevation: 0,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _policySection(
+              context,
+              title: '🛡️ Loan Sathi – Privacy Policy & Disclaimer',
+              points: const [
+                'Welcome to Loan Sathi.',
+                'This application is designed to provide educational information and guidance related to loans, credit scores, EMI calculations, and financial awareness.',
+                'We are committed to protecting user privacy and ensuring transparency in how information is presented and used.',
+              ],
+              isHighlight: true,
+            ),
+            const SizedBox(height: 12),
+            _policySection(
+              context,
+              title: '❗ Important Disclaimer (Very Important)',
+              points: const [
+                'Loan Sathi is NOT a loan provider, lender, NBFC, or financial institution.',
+                'We do NOT provide loans of any kind.',
+                'We do NOT facilitate loan applications.',
+                'We do NOT connect users with lenders.',
+                'We do NOT act as a financial intermediary.',
+                'This app is purely created for educational and informational purposes only.',
+                'Users are advised to verify all financial information with official banks or financial institutions before making any decisions.',
+              ],
+            ),
+            const SizedBox(height: 12),
+            _policySection(
+              context,
+              title: '📊 Nature of Information',
+              points: const [
+                'Loan guides (Personal, Home, Business, Education)',
+                'Credit score awareness',
+                'EMI calculation explanations',
+                'Eligibility and document guidance',
+                'All content is general information and may not apply to every individual case.',
+              ],
+            ),
+            const SizedBox(height: 12),
+            _policySection(
+              context,
+              title: '📉 No Financial Advice',
+              points: const [
+                'The information in this app should NOT be considered financial advice.',
+                'We do not guarantee loan approval, interest rates, or eligibility results.',
+                'Users should consult official sources or financial experts for final decisions.',
+              ],
+            ),
+            const SizedBox(height: 12),
+            _policySection(
+              context,
+              title: '🔐 Data Collection & Privacy',
+              points: const [
+                'We respect your privacy.',
+                'We DO NOT collect sensitive personal data.',
+                'We DO NOT access contacts, SMS, or gallery.',
+                'We DO NOT store financial information.',
+                'We MAY collect basic non-personal data for app performance.',
+                'We MAY collect analytics data to improve user experience.',
+              ],
+            ),
+            const SizedBox(height: 12),
+            _policySection(
+              context,
+              title: '📢 Google AdMob Usage',
+              points: const [
+                'This app uses Google AdMob to display advertisements.',
+                'Ads help support free content in the app.',
+                'AdMob may collect limited device data (as per Google policy).',
+                'Users may see personalized or non-personalized ads.',
+                'Google Privacy Policy: https://policies.google.com/privacy',
+              ],
+            ),
+            const SizedBox(height: 12),
+            _policySection(
+              context,
+              title: '🔗 Third-Party Services',
+              points: const [
+                'This app may use third-party services such as Google AdMob and analytics tools.',
+                'These services may collect data as per their own privacy policies.',
+                'We do not control third-party data handling practices.',
+              ],
+            ),
+            const SizedBox(height: 12),
+            _policySection(
+              context,
+              title: '⚠️ Accuracy of Information',
+              points: const [
+                'We try to keep all information accurate and updated.',
+                'Information may change over time.',
+                'We do not guarantee 100% accuracy.',
+                'Users should verify details from official sources.',
+              ],
+            ),
+            const SizedBox(height: 12),
+            _policySection(
+              context,
+              title: '🚫 Prohibited Use',
+              points: const [
+                'Users should not misuse the app for fraudulent activities or misleading financial actions.',
+              ],
+            ),
+            const SizedBox(height: 12),
+            _policySection(
+              context,
+              title: '🔄 Policy Updates',
+              points: const [
+                'We may update this policy from time to time.',
+                'Users are advised to review it periodically.',
+              ],
+            ),
+            const SizedBox(height: 12),
+            _policySection(
+              context,
+              title: '📧 Contact Us',
+              points: const [
+                'If you have any questions or concerns, contact us at:',
+                'indiandigitalservice01@gmail.com',
+              ],
+            ),
+            const SizedBox(height: 12),
+            _policySection(
+              context,
+              title: '✅ Final Note',
+              points: const [
+                'By using Loan Sathi, you agree that this app is only for guidance.',
+                'You will verify financial decisions independently.',
+                'You accept the terms mentioned above.',
+                'Thank you for using Loan Sathi.',
+              ],
+              isHighlight: true,
+            ),
+            const SizedBox(height: 12),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _policySection(
+    BuildContext context, {
+    required String title,
+    required List<String> points,
+    bool isHighlight = false,
+  }) {
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isHighlight ? const Color(0xFF1E3A5F) : themeProvider.cardBackground,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isHighlight ? const Color(0xFF1E3A5F) : themeProvider.borderColor,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: isHighlight ? Colors.white : themeProvider.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 10),
+          ...points.map(
+            (point) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '• ',
+                    style: TextStyle(
+                      color: isHighlight ? Colors.white : themeProvider.textPrimary,
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(
+                      point,
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        height: 1.45,
+                        color: isHighlight ? Colors.white.withOpacity(0.95) : themeProvider.textSecondary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

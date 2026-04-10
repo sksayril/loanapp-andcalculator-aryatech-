@@ -92,7 +92,7 @@ class _MyAppState extends State<MyApp> {
         Locale('en', ''),
         Locale('hi', ''),
       ],
-      home: const SplashScreen(), // Always start with splash screen
+      home: SplashScreen(nextScreenBuilder: (context) => const HomePage()),
     );
   }
 }
@@ -452,8 +452,12 @@ class _HomePageState extends State<HomePage> {
                           children: [
                             // Home - All calculators, CIBIL check, tools
                             _buildNavItem(Icons.home_outlined, 'Home', 0),
-                            // Loans - Personal, Home, Car, Education loans, etc.
-                            _buildNavItem(Icons.attach_money_outlined, 'Loans', 1),
+                            // Loan Guidance - Personal, Home, Car, Education loans, etc.
+                            _buildNavItem(
+                              Icons.attach_money_outlined,
+                              'LG',
+                              1,
+                            ),
                             // Search icon (COMMENTED OUT)
                             // _buildNavItem(Icons.search_outlined, '', 2),
                             // Profile - User settings and profile
@@ -535,7 +539,7 @@ class _HomePageState extends State<HomePage> {
           ),
           ListTile(
             leading: const Icon(Icons.flash_on, color: Color(0xFF5DADE2)),
-            title: const Text('Loans'),
+            title: const Text('Loan Guidance'),
             subtitle: const Text('Personal, Home, Car & More'),
             onTap: () {
               Navigator.pop(context);
@@ -620,6 +624,7 @@ class _HomePageState extends State<HomePage> {
                 ],
               ),
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
@@ -667,7 +672,7 @@ class _HomePageState extends State<HomePage> {
       case 0:
         return 'Home'; // All calculators and tools
       case 1:
-        return 'Loans'; // All loan types (Personal, Home, Car, etc.)
+        return 'LG'; // All loan types (Personal, Home, Car, etc.)
       case 2:
         return ''; // Search (no label, just icon)
       case 3:
@@ -968,6 +973,57 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             MaterialPageRoute(builder: (context) => const CibilScoreScreen()),
           );
         }
+      }
+    }
+  }
+
+  // Show Rewarded Ad before navigating to a target screen
+  void _showRewardedAdAndNavigateTo(Widget destination) async {
+    void navigateToTarget() {
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => destination),
+      );
+    }
+
+    if (_rewardedAd != null && _isRewardedAdLoaded) {
+      try {
+        await _rewardedAd!.show(
+          onUserEarnedReward: (ad, reward) {
+            navigateToTarget();
+          },
+        );
+      } catch (_) {
+        navigateToTarget();
+      }
+    } else {
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const Center(
+            child: CircularProgressIndicator(),
+          ),
+        );
+      }
+
+      await _loadRewardedAd();
+
+      if (mounted) Navigator.of(context).pop();
+
+      if (_rewardedAd != null && _isRewardedAdLoaded && mounted) {
+        try {
+          await _rewardedAd!.show(
+            onUserEarnedReward: (ad, reward) {
+              navigateToTarget();
+            },
+          );
+        } catch (_) {
+          navigateToTarget();
+        }
+      } else {
+        navigateToTarget();
       }
     }
   }
@@ -1308,7 +1364,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             const Text(
-                              'Check Full Report',
+                              'CIBIL Info',
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
@@ -1348,19 +1404,20 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Consumer<LanguageProvider>(
                     builder: (context, languageProvider, _) {
                       final localizations = lang.AppLocalizations.of(context);
                       return Text(
-                        localizations?.loanProfile ?? 'Loans',
+                        localizations?.loanProfile ?? 'Loan Guidance',
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
                           color: themeProvider.textPrimary,
                           letterSpacing: 0.5,
                         ),
+                        textAlign: TextAlign.center,
                       );
                     },
                   ),
@@ -1371,16 +1428,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       Expanded(
                         child: GestureDetector(
                           onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const HomeLoanCalculatorScreen(),
-                              ),
+                            _showRewardedAdAndNavigateTo(
+                              const HomeLoanCalculatorScreen(),
                             );
                           },
                           child: _buildLoanCard(
                             'Home Loan',
-                            'From 8.4% p.a.',
+                            '',
                             Icons.home_outlined,
                             const Color(0xFF1E3A5F),
                           ),
@@ -1390,16 +1444,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       Expanded(
                         child: GestureDetector(
                           onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const PersonalLoanCalculatorScreen(),
-                              ),
+                            _showRewardedAdAndNavigateTo(
+                              const PersonalLoanCalculatorScreen(),
                             );
                           },
                           child: _buildLoanCard(
                             'Personal Loan',
-                            'Instant Approval',
+                            '',
                             Icons.person_outline,
                             const Color(0xFF7C4DFF),
                           ),
@@ -1413,16 +1464,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       Expanded(
                         child: GestureDetector(
                           onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const BusinessLoanCalculatorScreen(),
-                              ),
+                            _showRewardedAdAndNavigateTo(
+                              const BusinessLoanCalculatorScreen(),
                             );
                           },
                           child: _buildLoanCard(
                             'Business Loan',
-                            'Expand now',
+                            '',
                             Icons.store_outlined,
                             const Color(0xFFFF6B35),
                           ),
@@ -1432,16 +1480,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       Expanded(
                         child: GestureDetector(
                           onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const EducationLoanCalculatorScreen(),
-                              ),
+                            _showRewardedAdAndNavigateTo(
+                              const EducationLoanCalculatorScreen(),
                             );
                           },
                           child: _buildLoanCard(
                             'Education',
-                            'Study abroad',
+                            '',
                             Icons.school_outlined,
                             const Color(0xFF00BFA5),
                           ),
@@ -2176,18 +2221,20 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 4),
-          // Subtitle
-          Text(
-            subtitle,
-            style: TextStyle(
-              color: themeProvider.textSecondary,
-              fontSize: 12,
-              fontWeight: FontWeight.w400,
+          if (subtitle.trim().isNotEmpty) ...[
+            const SizedBox(height: 4),
+            // Subtitle
+            Text(
+              subtitle,
+              style: TextStyle(
+                color: themeProvider.textSecondary,
+                fontSize: 12,
+                fontWeight: FontWeight.w400,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
+          ],
         ],
       ),
     );

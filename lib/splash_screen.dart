@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:emi_calculatornew/main.dart';
+import 'package:emi_calculatornew/disclaimer_screen.dart';
+import 'package:emi_calculatornew/services/disclaimer_prefs.dart';
 
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key});
+  final WidgetBuilder nextScreenBuilder;
+
+  const SplashScreen({
+    super.key,
+    required this.nextScreenBuilder,
+  });
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();
@@ -29,13 +35,29 @@ class _SplashScreenState extends State<SplashScreen> {
   Future<void> _navigateToNextScreen() async {
     if (!mounted || _hasNavigated) return;
     _hasNavigated = true;
-    
-    // Navigate directly to home screen (profile setup removed)
+
+    final hasAgreed = await DisclaimerPrefs.isAgreed();
+
     if (!mounted) return;
-    
+
+    if (hasAgreed) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: widget.nextScreenBuilder),
+      );
+      return;
+    }
+
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => const HomePage()),
+      MaterialPageRoute(
+        builder: (_) => DisclaimerScreen(
+          nextScreenBuilder: widget.nextScreenBuilder,
+          splashAfterAgreeBuilder: (ctx) => SplashScreen(
+            nextScreenBuilder: widget.nextScreenBuilder,
+          ),
+        ),
+      ),
     );
   }
 

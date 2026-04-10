@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:math';
 import '../splash_screen.dart';
 import '../providers/theme_provider.dart';
+import '../main.dart';
 import 'package:provider/provider.dart';
 
 class ProfileSetupScreen extends StatefulWidget {
@@ -103,7 +104,11 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
 
       // Navigate to splash screen
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const SplashScreen()),
+        MaterialPageRoute(
+          builder: (_) => SplashScreen(
+            nextScreenBuilder: (ctx) => const HomePage(),
+          ),
+        ),
       );
     } catch (e) {
       if (mounted) {
@@ -408,7 +413,11 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                     
                     if (!mounted) return;
                     Navigator.of(context).pushReplacement(
-                      MaterialPageRoute(builder: (_) => const SplashScreen()),
+                      MaterialPageRoute(
+                        builder: (_) => SplashScreen(
+                          nextScreenBuilder: (ctx) => const HomePage(),
+                        ),
+                      ),
                     );
                   },
                   child: Text(

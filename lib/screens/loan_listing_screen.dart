@@ -1547,7 +1547,7 @@ class _LoanListingScreenState extends State<LoanListingScreen> {
                           ),
                         ),
                         child: const Text(
-                          'APPLY NOW',
+                          'NEXT',
                           style: TextStyle(
                             color: Colors.white,
                             shadows: [

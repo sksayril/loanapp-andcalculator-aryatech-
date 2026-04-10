@@ -78,7 +78,7 @@ class AppLocalizations {
       // Home Screen
       'cibil_score_check': 'CIBIL Score Check',
       'check_credit_score': 'Check your credit score instantly ',
-      'loan_profile': 'Loans',
+      'loan_profile': 'Loan Guidance',
       'business_calculator': 'Advance Calculators',
       'tax_calculator': 'Tax Calculator',
       'income_tax_calculator': 'Income Tax Calculator',
@@ -184,7 +184,7 @@ class AppLocalizations {
       // Home Screen
       'cibil_score_check': 'CIBIL स्कोर जांच',
       'check_credit_score': 'अपना क्रेडिट स्कोर तुरंत और मुफ्त में जांचें।',
-      'loan_profile': 'तत्काल ऋण',
+      'loan_profile': 'ऋण मार्गदर्शन',
       'business_calculator': 'उन्नत कैलकुलेटर',
       'tax_calculator': 'टैक्स कैलकुलेटर',
       'income_tax_calculator': 'आयकर कैलकुलेटर',

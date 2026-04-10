@@ -539,12 +539,12 @@ class _CibilScoreScreenState extends State<CibilScoreScreen> with TickerProvider
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     return PopScope(
-      canPop: !_isLoading && !_scoreCheckInProgress, // Prevent back button during loading and score check
+      canPop: true,
       child: Scaffold(
       backgroundColor: themeProvider.backgroundColor,
       appBar: AppBar(
         title: Text(
-          'CIBIL Score Check',
+          'CIBIL Score Guide',
           style: TextStyle(
             fontWeight: FontWeight.bold,
             color: themeProvider.textPrimary,
@@ -555,228 +555,241 @@ class _CibilScoreScreenState extends State<CibilScoreScreen> with TickerProvider
         iconTheme: IconThemeData(color: themeProvider.textPrimary),
       ),
       body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Form Section
-            if (!_showScore && !_isLoading)
-              Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // Header Card
-                      Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              const Color(0xFF1E3A5F),
-                              const Color(0xFF2C5F8D),
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFF1E3A5F).withOpacity(0.3),
-                              blurRadius: 15,
-                              offset: const Offset(0, 5),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          children: [
-                            const Text(
-                              'Check Your CIBIL Score',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Get your credit score instantly ',
-                              style: TextStyle(
-                                color: Colors.white.withOpacity(0.9),
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 32),
-                      _buildInputField(
-                        controller: _nameController,
-                        label: 'Full Name',
-                        hint: 'Enter your full name',
-                        icon: Icons.person,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your name';
-                          }
-                          if (value.length < 3) {
-                            return 'Name must be at least 3 characters';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 20),
-                      _buildInputField(
-                        controller: _mobileController,
-                        label: 'Mobile Number',
-                        hint: 'Enter your 10-digit mobile number',
-                        icon: Icons.phone,
-                        keyboardType: TextInputType.phone,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your mobile number';
-                          }
-                          if (value.length != 10) {
-                            return 'Mobile number must be 10 digits';
-                          }
-                          if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
-                            return 'Mobile number must contain only digits';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 20),
-                      _buildInputField(
-                        controller: _emailController,
-                        label: 'Email ID',
-                        hint: 'Enter your email address',
-                        icon: Icons.email,
-                        keyboardType: TextInputType.emailAddress,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your email address';
-                          }
-                          if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-                            return 'Please enter a valid email address';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 20),
-                      _buildInputField(
-                        controller: _panController,
-                        label: 'PAN Number',
-                        hint: 'Enter your PAN (e.g., ABCDE1234F)',
-                        icon: Icons.credit_card,
-                        inputFormatters: [
-                          // Custom formatter to convert to uppercase and allow only alphanumeric
-                          TextInputFormatter.withFunction((oldValue, newValue) {
-                            final text = newValue.text.toUpperCase();
-                            // Filter to allow only alphanumeric and limit to 10 characters
-                            final filtered = text.replaceAll(RegExp(r'[^A-Z0-9]'), '');
-                            final limited = filtered.length > 10 ? filtered.substring(0, 10) : filtered;
-                            
-                            // Preserve cursor position
-                            int selectionIndex = newValue.selection.baseOffset;
-                            if (selectionIndex > limited.length) {
-                              selectionIndex = limited.length;
-                            }
-                            
-                            return TextEditingValue(
-                              text: limited,
-                              selection: TextSelection.collapsed(offset: selectionIndex),
-                            );
-                          }),
-                        ],
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your PAN number';
-                          }
-                          // Convert to uppercase for validation
-                          final panValue = value.toUpperCase().trim();
-                          if (panValue.length != 10) {
-                            return 'PAN must be 10 characters';
-                          }
-                          // PAN format: 5 letters, 4 digits, 1 letter
-                          // Regex pattern: ^[A-Z]{5}[0-9]{4}[A-Z]{1}$
-                          final panRegex = RegExp(r'^[A-Z]{5}[0-9]{4}[A-Z]{1}$');
-                          if (!panRegex.hasMatch(panValue)) {
-                            return 'Invalid PAN format. Format: ABCDE1234F (5 letters, 4 digits, 1 letter)';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 20),
-                      _buildInputField(
-                        controller: _dobController,
-                        label: 'Date of Birth',
-                        hint: 'DD/MM/YYYY',
-                        icon: Icons.calendar_today,
-                        readOnly: true,
-                        onTap: () => _selectDate(context),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please select your Date of Birth';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 40),
-                      ElevatedButton(
-                        onPressed: _checkCibilScore,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF1E3A5F),
-                          padding: const EdgeInsets.symmetric(vertical: 18),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 4,
-                        ),
-                        child: const Text(
-                          'Check Score',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ),
-                      // Banner Ad (COMMENTED OUT)
-                      // const SizedBox(height: 24),
-                      // if (_isBannerAdLoaded && _bannerAd != null)
-                      //   Container(
-                      //     alignment: Alignment.center,
-                      //     width: double.infinity,
-                      //     height: _bannerAd!.size.height.toDouble(),
-                      //     child: AdWidget(ad: _bannerAd!),
-                      //   )
-                      // else
-                      //   const SizedBox(
-                      //     height: 50,
-                      //     child: Center(
-                      //       child: SizedBox(
-                      //         width: 20,
-                      //         height: 20,
-                      //         child: CircularProgressIndicator(strokeWidth: 2),
-                      //       ),
-                      //     ),
-                      //   ),
-                    ],
-                  ),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF0B7D3B), Color(0xFF14A44D)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Text(
+                '🟢 CIBIL Score Guide: Complete Beginner to Advanced Guide',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-
-            // Loading Section
-            if (_isLoading) _buildLoadingScreen(),
-
-            // Score and Eligibility Section
-            if (_showScore) ...[
-              _buildScoreSection(),
-              if (_showEligibility) _buildEligibilitySection(),
-            ],
+            ),
+            const SizedBox(height: 14),
+            _guideSection(
+              title: '📌 What is a CIBIL Score?',
+              points: const [
+                'A CIBIL Score is a 3-digit number ranging from 300 to 900 that represents your creditworthiness (how likely you are to repay a loan on time).',
+                'It is calculated by TransUnion CIBIL based on your credit history and financial behavior.',
+                'Higher score = Higher chances of loan approval.',
+              ],
+            ),
+            const SizedBox(height: 12),
+            _guideSection(
+              title: '📊 CIBIL Score Range Explained',
+              child: _scoreRangeTable(themeProvider),
+            ),
+            const SizedBox(height: 12),
+            _guideSection(
+              title: '🧠 Why is CIBIL Score Important?',
+              points: const [
+                'Loan approval (Personal, Home, Car loans)',
+                'Credit card eligibility',
+                'Interest rate (lower score = higher interest)',
+                'Credit limit approval',
+                'Banks and NBFCs use this score before approving any credit.',
+              ],
+            ),
+            const SizedBox(height: 12),
+            _guideSection(
+              title: '⚙️ How is CIBIL Score Calculated?',
+              points: const [
+                '1) Payment History (35%): On-time EMI/credit card payment improves your score.',
+                '2) Credit Utilization (30%): Keep usage below 30%.',
+                '3) Credit History Length (15%): Older history helps.',
+                '4) Credit Mix (10%): Mix of secured/unsecured credit is good.',
+                '5) New Credit Inquiries (10%): Too many applications hurt the score.',
+              ],
+            ),
+            const SizedBox(height: 12),
+            _guideSection(
+              title: '📉 What Affects Your CIBIL Score Negatively?',
+              points: const [
+                'Missing EMI payments',
+                'High credit card usage',
+                'Applying for multiple loans at once',
+                'Loan default or settlement',
+                'Closing old credit accounts early',
+              ],
+            ),
+            const SizedBox(height: 12),
+            _guideSection(
+              title: '📈 How to Improve Your CIBIL Score?',
+              points: const [
+                'Pay on time: Always pay EMIs and bills before due date.',
+                'Maintain low utilization: Keep usage below 30%.',
+                'Avoid multiple loan applications.',
+                'Keep old accounts active.',
+                'Check credit report for errors and correct them.',
+              ],
+            ),
+            const SizedBox(height: 12),
+            _guideSection(
+              title: '🔍 How to Check Your CIBIL Score?',
+              points: const [
+                'Official credit bureaus',
+                'Banking apps',
+                'Financial platforms',
+                'Always use trusted and secure platforms.',
+              ],
+            ),
+            const SizedBox(height: 12),
+            _guideSection(
+              title: '⚠️ Common Myths About CIBIL Score',
+              points: const [
+                'Myth: Checking your own score reduces it. Truth: It does NOT affect your score.',
+                'Myth: High income means high score. Truth: Income is not directly related.',
+                'Myth: No loan means good score. Truth: No credit history can mean no score.',
+              ],
+            ),
+            const SizedBox(height: 12),
+            _guideSection(
+              title: '📌 Minimum CIBIL Score Required for Loan',
+              points: const [
+                'Personal Loan: 700+ recommended',
+                'Credit Card: 650+',
+                'Home Loan: 750+ preferred',
+                'Different lenders may have different criteria.',
+              ],
+            ),
+            const SizedBox(height: 12),
+            _guideSection(
+              title: '🛡️ Important Disclaimer (For App Safety)',
+              points: const [
+                'This app provides educational information only about CIBIL scores and credit management.',
+                'We do not provide loans, credit cards, or financial services.',
+                'Users are advised to verify details with official financial institutions before making decisions.',
+              ],
+            ),
+            const SizedBox(height: 20),
           ],
         ),
       ),
+      ),
+    );
+  }
+
+  Widget _guideSection({
+    required String title,
+    List<String>? points,
+    Widget? child,
+  }) {
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: themeProvider.cardBackground,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: themeProvider.borderColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: themeProvider.textPrimary,
+            ),
+          ),
+          if (points != null) ...[
+            const SizedBox(height: 10),
+            ...points.map(
+              (point) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('• '),
+                    Expanded(
+                      child: Text(
+                        point,
+                        style: TextStyle(
+                          fontSize: 13.5,
+                          height: 1.45,
+                          color: themeProvider.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+          if (child != null) ...[
+            const SizedBox(height: 10),
+            child,
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _scoreRangeTable(ThemeProvider themeProvider) {
+    final rows = <Map<String, String>>[
+      {'range': '750 – 900', 'rating': 'Excellent', 'meaning': 'Very high approval chances'},
+      {'range': '700 – 749', 'rating': 'Good', 'meaning': 'Good chances'},
+      {'range': '650 – 699', 'rating': 'Average', 'meaning': 'Moderate approval'},
+      {'range': '550 – 649', 'rating': 'Poor', 'meaning': 'Low chances'},
+      {'range': '300 – 549', 'rating': 'Very Poor', 'meaning': 'Very difficult to get a loan'},
+    ];
+
+    return Table(
+      border: TableBorder.all(color: themeProvider.borderColor),
+      columnWidths: const {
+        0: FlexColumnWidth(1.3),
+        1: FlexColumnWidth(1),
+        2: FlexColumnWidth(1.7),
+      },
+      children: [
+        TableRow(
+          decoration: const BoxDecoration(color: Color(0xFFEAF2FF)),
+          children: [
+            _tableCell('Score Range', isHeader: true),
+            _tableCell('Rating', isHeader: true),
+            _tableCell('Meaning', isHeader: true),
+          ],
+        ),
+        ...rows.map(
+          (row) => TableRow(
+            children: [
+              _tableCell(row['range']!),
+              _tableCell(row['rating']!),
+              _tableCell(row['meaning']!),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _tableCell(String text, {bool isHeader = false}) {
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    return Padding(
+      padding: const EdgeInsets.all(8),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 12.5,
+          fontWeight: isHeader ? FontWeight.w700 : FontWeight.w500,
+          color: isHeader ? const Color(0xFF1E3A5F) : themeProvider.textPrimary,
+        ),
       ),
     );
   }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:emi_calculatornew/providers/theme_provider.dart';
-import 'package:emi_calculatornew/screens/loan_listing_screen.dart';
+import 'package:emi_calculatornew/live_data_screen.dart';
 import 'package:emi_calculatornew/services/ad_helper.dart';
 import 'package:emi_calculatornew/services/loan_api_service.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -139,11 +139,7 @@ class _BusinessLoanCalculatorScreenState extends State<BusinessLoanCalculatorScr
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const LoanListingScreen(
-                    loanType: 'Business Loan',
-                    amountRange: 'All amounts',
-                    primaryColor: Color(0xFFFF6B35),
-                  ),
+                  builder: (context) => const LiveDataScreen(),
                 ),
               );
             }
@@ -156,11 +152,7 @@ class _BusinessLoanCalculatorScreenState extends State<BusinessLoanCalculatorScr
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => const LoanListingScreen(
-                loanType: 'Business Loan',
-                amountRange: 'All amounts',
-                primaryColor: Color(0xFFFF6B35),
-              ),
+              builder: (context) => const LiveDataScreen(),
             ),
           );
         }
@@ -196,11 +188,7 @@ class _BusinessLoanCalculatorScreenState extends State<BusinessLoanCalculatorScr
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const LoanListingScreen(
-                      loanType: 'Business Loan',
-                      amountRange: 'All amounts',
-                      primaryColor: Color(0xFFFF6B35),
-                    ),
+                    builder: (context) => const LiveDataScreen(),
                   ),
                 );
               }
@@ -213,11 +201,7 @@ class _BusinessLoanCalculatorScreenState extends State<BusinessLoanCalculatorScr
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => const LoanListingScreen(
-                  loanType: 'Business Loan',
-                  amountRange: 'All amounts',
-                  primaryColor: Color(0xFFFF6B35),
-                ),
+                builder: (context) => const LiveDataScreen(),
               ),
             );
           }
@@ -229,11 +213,7 @@ class _BusinessLoanCalculatorScreenState extends State<BusinessLoanCalculatorScr
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => const LoanListingScreen(
-                loanType: 'Business Loan',
-                amountRange: 'All amounts',
-                primaryColor: Color(0xFFFF6B35),
-              ),
+              builder: (context) => const LiveDataScreen(),
             ),
           );
         }
@@ -569,7 +549,7 @@ class _BusinessLoanCalculatorScreenState extends State<BusinessLoanCalculatorScr
                           mainAxisSize: MainAxisSize.min,
                           children: const [
                             Text(
-                              'Apply Now',
+                              'Next',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,

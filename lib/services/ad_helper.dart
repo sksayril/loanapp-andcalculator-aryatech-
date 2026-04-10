@@ -34,32 +34,18 @@ class AdHelper {
   }
 
   // Native Ad ID
-  // ⚠️ IMPORTANT: The current production ID (8363331473) is NOT configured as Native format in AdMob
-  // This will cause Error Code 3: "Ad unit doesn't match format"
-  // 
-  // TO FIX:
-  // 1. Go to AdMob Console → Your App → Ad units → Add ad unit
-  // 2. Select "Native" (NOT Banner/Interstitial/Rewarded)
-  // 3. Create the ad unit and copy the NEW ID
-  // 4. Replace the ID below with your new Native ad unit ID
-  // 5. Change _useTesting to false
-  //
-  // Current ID: ca-app-pub-3422720384917984/8363331473 ❌ (Wrong format - needs replacement)
   static String get nativeAdUnitId {
     if (_useTesting) {
       // Test ad ID for Native ads (always works)
       return Platform.isAndroid
-        ? 'ca-app-pub-3940256099942544/2247696110'  // Test native ad
+        ? 'ca-app-pub-3940256099942544/2247696110'
         : 'ca-app-pub-3940256099942544/3986624511';
     }
-    
-    // ⚠️ PRODUCTION ID - This ID is NOT configured as Native format in AdMob
-    // Replace with your NEW Native ad unit ID from AdMob console
-    // The current ID (8363331473) will fail with Error Code 3
+
     if (Platform.isAndroid) {
-      return 'ca-app-pub-3422720384917984/8363331473'; // ❌ REPLACE THIS with new Native ad ID
+      return 'ca-app-pub-3422720384917984/8363331473';
     } else if (Platform.isIOS) {
-      return 'ca-app-pub-3422720384917984/8363331473'; // ❌ REPLACE THIS with new Native ad ID
+      return 'ca-app-pub-3422720384917984/8363331473';
     } else {
       throw UnsupportedError('Unsupported platform');
     }
@@ -138,7 +124,7 @@ class AdHelper {
   }) {
     print('→ Loading NativeAd with ID: $nativeAdUnitId');
     print('  Testing mode: $_useTesting');
-    
+
     NativeAd nativeAd = NativeAd(
       adUnitId: nativeAdUnitId,
       listener: NativeAdListener(
@@ -149,40 +135,8 @@ class AdHelper {
         onAdFailedToLoad: (ad, error) {
           print('✗ NativeAd failed to load: ${error.message}');
           print('  Code: ${error.code}, Domain: ${error.domain}');
-          print('  Response: ${error.responseInfo}');
-          
-          // Special handling for Error Code 3 (Ad unit format mismatch)
-          if (error.code == 3) {
-            print('');
-            print('⚠️⚠️⚠️ NATIVE AD CONFIGURATION ERROR ⚠️⚠️⚠️');
-            print('Error Code 3: Ad unit doesn\'t match format');
-            print('The ad unit ID is NOT configured as Native format in AdMob.');
-            print('');
-            print('Current ID: $nativeAdUnitId');
-            print('');
-            print('TO FIX:');
-            print('1. Go to AdMob Console → Your App → Ad units');
-            print('2. Create a NEW Native ad unit (not Banner/Interstitial)');
-            print('3. Copy the NEW Native ad unit ID');
-            print('4. Update nativeAdUnitId in ad_helper.dart');
-            print('5. See FIX_NATIVE_ADS.md for detailed instructions');
-            print('');
-          }
-          
           ad.dispose();
           onAdFailedToLoad(error);
-        },
-        onAdClicked: (ad) {
-          print('NativeAd clicked');
-        },
-        onAdImpression: (ad) {
-          print('NativeAd impression recorded');
-        },
-        onAdOpened: (ad) {
-          print('NativeAd opened');
-        },
-        onAdClosed: (ad) {
-          print('NativeAd closed');
         },
       ),
       request: const AdRequest(),
@@ -216,7 +170,7 @@ class AdHelper {
         ),
       ),
     );
-    
+
     nativeAd.load();
     return nativeAd;
   }
