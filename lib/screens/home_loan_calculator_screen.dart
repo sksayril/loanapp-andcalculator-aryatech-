@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:emi_calculatornew/providers/theme_provider.dart';
 import 'package:emi_calculatornew/live_data_screen.dart';
+import 'package:emi_calculatornew/screens/loan_application_screen.dart';
 import 'package:emi_calculatornew/services/ad_helper.dart';
-import 'package:emi_calculatornew/services/loan_api_service.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'dart:math';
 
@@ -24,17 +24,10 @@ class _HomeLoanCalculatorScreenState extends State<HomeLoanCalculatorScreen> {
   bool _isRewardedAdLoaded = false;
   bool _isAdLoading = false;
   
-  // Apply Now button visibility
-  bool _isApplyNowActive = false;
-  bool _isCheckingApplyNow = true;
-  
   @override
   void initState() {
     super.initState();
-    // Load rewarded ad on init
     _loadRewardedAd();
-    // Check Apply Now status
-    _checkApplyNowStatus();
   }
 
   @override
@@ -51,7 +44,7 @@ class _HomeLoanCalculatorScreenState extends State<HomeLoanCalculatorScreen> {
       _isAdLoading = true;
     });
     
-    print('→ Loading rewarded ad for Apply Now...');
+    print('→ Loading rewarded ad for Next...');
     _rewardedAd = await AdHelper.loadRewardedAd();
     
     if (_rewardedAd != null && mounted) {
@@ -99,28 +92,6 @@ class _HomeLoanCalculatorScreenState extends State<HomeLoanCalculatorScreen> {
     }
   }
 
-  // Check Apply Now status from API
-  Future<void> _checkApplyNowStatus() async {
-    try {
-      final status = await LoanApiService.checkApplyNowStatus();
-      if (mounted) {
-        setState(() {
-          _isApplyNowActive = status.isActive;
-          _isCheckingApplyNow = false;
-        });
-      }
-    } catch (e) {
-      print('Error checking Apply Now status: $e');
-      // Default to showing button if API fails
-      if (mounted) {
-        setState(() {
-          _isApplyNowActive = true;
-          _isCheckingApplyNow = false;
-        });
-      }
-    }
-  }
-
   // Show Rewarded Ad and Navigate
   Future<void> _showRewardedAdAndNavigate() async {
     print('→ Attempting to show rewarded ad...');
@@ -139,7 +110,7 @@ class _HomeLoanCalculatorScreenState extends State<HomeLoanCalculatorScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const LiveDataScreen(),
+                  builder: (context) => const LoanApplicationScreen(),
                 ),
               );
             }
@@ -152,7 +123,7 @@ class _HomeLoanCalculatorScreenState extends State<HomeLoanCalculatorScreen> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => const LiveDataScreen(),
+              builder: (context) => const LoanApplicationScreen(),
             ),
           );
         }
@@ -188,7 +159,7 @@ class _HomeLoanCalculatorScreenState extends State<HomeLoanCalculatorScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const LiveDataScreen(),
+                    builder: (context) => const LoanApplicationScreen(),
                   ),
                 );
               }
@@ -201,7 +172,7 @@ class _HomeLoanCalculatorScreenState extends State<HomeLoanCalculatorScreen> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => const LiveDataScreen(),
+                builder: (context) => const LoanApplicationScreen(),
               ),
             );
           }
@@ -213,7 +184,7 @@ class _HomeLoanCalculatorScreenState extends State<HomeLoanCalculatorScreen> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => const LiveDataScreen(),
+              builder: (context) => const LoanApplicationScreen(),
             ),
           );
         }
@@ -498,7 +469,7 @@ class _HomeLoanCalculatorScreenState extends State<HomeLoanCalculatorScreen> {
               
               const SizedBox(height: 32),
               
-              // Total Amount and Apply Now Button
+              // Total Amount and Next (rewarded ad → Live Data)
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
@@ -530,36 +501,34 @@ class _HomeLoanCalculatorScreenState extends State<HomeLoanCalculatorScreen> {
                         ),
                       ],
                     ),
-                    // Apply Now Button (only show if isActive is true)
-                    if (!_isCheckingApplyNow && _isApplyNowActive)
-                      ElevatedButton(
-                        onPressed: _showRewardedAdAndNavigate,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: const Color(0xFF1E3A5F),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 14,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+                    ElevatedButton(
+                      onPressed: _showRewardedAdAndNavigate,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: const Color(0xFF1E3A5F),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 14,
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: const [
-                            Text(
-                              'Next',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            SizedBox(width: 8),
-                            Icon(Icons.arrow_forward, size: 20),
-                          ],
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Text(
+                            'Next',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          SizedBox(width: 8),
+                          Icon(Icons.arrow_forward, size: 20),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),

@@ -36,6 +36,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:emi_calculatornew/screens/profile_setup_screen.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:emi_calculatornew/services/ad_helper.dart';
+import 'package:emi_calculatornew/services/app_update_service.dart';
 import 'package:emi_calculatornew/services/loan_api_service.dart';
 import 'dart:math';
 
@@ -113,6 +114,11 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        AppUpdateService.checkAndroidInAppUpdate(context);
+      }
+    });
     _pageController = PageController(initialPage: _selectedIndex);
     _screens = [
       // Index 0: Home - All calculators and tools
@@ -210,6 +216,7 @@ class _HomePageState extends State<HomePage> {
 
   @override
   void dispose() {
+    AppUpdateService.cancelInstallListener();
     _pageController.dispose();
     super.dispose();
   }
@@ -977,57 +984,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
   }
 
-  // Show Rewarded Ad before navigating to a target screen
-  void _showRewardedAdAndNavigateTo(Widget destination) async {
-    void navigateToTarget() {
-      if (!mounted) return;
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => destination),
-      );
-    }
-
-    if (_rewardedAd != null && _isRewardedAdLoaded) {
-      try {
-        await _rewardedAd!.show(
-          onUserEarnedReward: (ad, reward) {
-            navigateToTarget();
-          },
-        );
-      } catch (_) {
-        navigateToTarget();
-      }
-    } else {
-      if (mounted) {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => const Center(
-            child: CircularProgressIndicator(),
-          ),
-        );
-      }
-
-      await _loadRewardedAd();
-
-      if (mounted) Navigator.of(context).pop();
-
-      if (_rewardedAd != null && _isRewardedAdLoaded && mounted) {
-        try {
-          await _rewardedAd!.show(
-            onUserEarnedReward: (ad, reward) {
-              navigateToTarget();
-            },
-          );
-        } catch (_) {
-          navigateToTarget();
-        }
-      } else {
-        navigateToTarget();
-      }
-    }
-  }
-
   // Show confirmation dialog before rewarded ad (COMMENTED OUT)
   /* Future<void> _showRewardedAdConfirmationDialogForCibil() async {
     return showDialog<void>(
@@ -1233,13 +1189,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             child: GestureDetector(
-              onTap: () {
-                // Direct navigation - ad dialog commented out
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const CibilScoreScreen()),
-                );
-              },
+              onTap: _showRewardedAdAndNavigate,
               child: Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
@@ -1428,8 +1378,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       Expanded(
                         child: GestureDetector(
                           onTap: () {
-                            _showRewardedAdAndNavigateTo(
-                              const HomeLoanCalculatorScreen(),
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const HomeLoanCalculatorScreen(),
+                              ),
                             );
                           },
                           child: _buildLoanCard(
@@ -1444,8 +1398,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       Expanded(
                         child: GestureDetector(
                           onTap: () {
-                            _showRewardedAdAndNavigateTo(
-                              const PersonalLoanCalculatorScreen(),
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const PersonalLoanCalculatorScreen(),
+                              ),
                             );
                           },
                           child: _buildLoanCard(
@@ -1464,8 +1422,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       Expanded(
                         child: GestureDetector(
                           onTap: () {
-                            _showRewardedAdAndNavigateTo(
-                              const BusinessLoanCalculatorScreen(),
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const BusinessLoanCalculatorScreen(),
+                              ),
                             );
                           },
                           child: _buildLoanCard(
@@ -1480,8 +1442,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       Expanded(
                         child: GestureDetector(
                           onTap: () {
-                            _showRewardedAdAndNavigateTo(
-                              const EducationLoanCalculatorScreen(),
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const EducationLoanCalculatorScreen(),
+                              ),
                             );
                           },
                           child: _buildLoanCard(

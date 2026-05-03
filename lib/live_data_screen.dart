@@ -99,7 +99,7 @@ class _LiveDataScreenState extends State<LiveDataScreen> {
 
   final List<_InfoGuideCardItem> _infoCards = const [
     _InfoGuideCardItem(
-      title: 'Loan Guidence',
+      title: 'Loan Guidance',
       icon: Icons.account_balance_wallet_outlined,
       color: Color(0xFF23456B),
     ),
@@ -169,52 +169,29 @@ class _LiveDataScreenState extends State<LiveDataScreen> {
   Future<void> _loadCategories() async {
     setState(() {
       _isLoading = true;
-      _errorMessage = null;
     });
 
-    try {
-      final categories = await LoanApiService.fetchCategoriesFromApi();
-      
-      if (mounted) {
-        setState(() {
-          final mappedCategories = categories.map((category) {
-            final name = category.name ?? 'Unknown';
-            final metadata = _categoryMetadata[name] ?? {
-              'icon': Icons.account_balance_wallet_outlined,
-              'interestRate': 'Contact for details',
-              'processingTime': 'Varies',
-              'color': Color(0xFF5E35B1),
-            };
-            
-            return InstantLoanCategory(
-              title: name,
-              emoji: '', // Not used anymore
-              subtitle: metadata['interestRate'] as String,
-              color: metadata['color'] as Color,
-              categoryId: category.id,
-            );
-          }).toList();
+    // 100% Static categories as requested
+    final List<String> staticNames = [
+      'Personal Loan',
+      'Home Loan',
+      'Business Loan',
+      'Education Loan',
+    ];
 
-          mappedCategories.sort((a, b) {
-            final aIndex = _desiredOrder.indexOf(a.title);
-            final bIndex = _desiredOrder.indexOf(b.title);
-            final safeA = aIndex == -1 ? _desiredOrder.length : aIndex;
-            final safeB = bIndex == -1 ? _desiredOrder.length : bIndex;
-            return safeA.compareTo(safeB);
-          });
-
-          _categories = mappedCategories;
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-          _errorMessage = e.toString().replaceAll('Exception: ', '');
-        });
-      }
-    }
+    setState(() {
+      _categories = staticNames.map((name) {
+        final metadata = _categoryMetadata[name]!;
+        return InstantLoanCategory(
+          title: name,
+          emoji: '', 
+          subtitle: metadata['interestRate'] as String,
+          color: metadata['color'] as Color,
+          categoryId: name.toLowerCase().replaceAll(' ', '_'),
+        );
+      }).toList();
+      _isLoading = false;
+    });
   }
 
   @override
@@ -341,22 +318,23 @@ class _LiveDataScreenState extends State<LiveDataScreen> {
     );
   }
 
+  /// Shows a rewarded ad (with load retry), then navigates for the tapped info card.
   Future<void> _showRewardedAdAndNavigate(String title) async {
     if (_isCardNavigationInProgress) return;
     _isCardNavigationInProgress = true;
 
-    if (_rewardedAd != null && _isRewardedAdLoaded) {
-      _rewardedAd!.fullScreenContentCallback = FullScreenContentCallback(
-        onAdDismissedFullScreenContent: (ad) {
-          ad.dispose();
+    Future<void> presentRewardedAd(RewardedAd ad) async {
+      ad.fullScreenContentCallback = FullScreenContentCallback(
+        onAdDismissedFullScreenContent: (a) {
+          a.dispose();
           _rewardedAd = null;
           _isRewardedAdLoaded = false;
           _isCardNavigationInProgress = false;
           _onInfoCardTap(title);
           _loadRewardedAd();
         },
-        onAdFailedToShowFullScreenContent: (ad, error) {
-          ad.dispose();
+        onAdFailedToShowFullScreenContent: (a, error) {
+          a.dispose();
           _rewardedAd = null;
           _isRewardedAdLoaded = false;
           _isCardNavigationInProgress = false;
@@ -366,25 +344,58 @@ class _LiveDataScreenState extends State<LiveDataScreen> {
       );
 
       try {
-        await _rewardedAd!.show(
-          onUserEarnedReward: (ad, reward) {},
+        await ad.show(
+          onUserEarnedReward: (_, __) {},
         );
       } catch (_) {
         _isCardNavigationInProgress = false;
         _onInfoCardTap(title);
         _loadRewardedAd();
       }
+    }
+
+    if (_rewardedAd != null && _isRewardedAdLoaded) {
+      await presentRewardedAd(_rewardedAd!);
       return;
     }
 
-    _isCardNavigationInProgress = false;
-    _onInfoCardTap(title);
-    _loadRewardedAd();
+    if (!mounted) {
+      _isCardNavigationInProgress = false;
+      return;
+    }
+
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    final ad = await AdHelper.loadRewardedAd();
+
+    if (!mounted) {
+      _isCardNavigationInProgress = false;
+      return;
+    }
+    Navigator.of(context).pop();
+
+    if (ad != null) {
+      setState(() {
+        _rewardedAd = ad;
+        _isRewardedAdLoaded = true;
+      });
+      await presentRewardedAd(ad);
+    } else {
+      _isCardNavigationInProgress = false;
+      _onInfoCardTap(title);
+      _loadRewardedAd();
+    }
   }
 
   void _onInfoCardTap(String title) {
     switch (title) {
-      case 'Loan Guidence':
+      case 'Loan Guidance':
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -1202,7 +1213,7 @@ class LoanGuidenceScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: themeProvider.backgroundColor,
       appBar: AppBar(
-        title: const Text('Loan Guidence'),
+        title: const Text('Loan Guidance'),
         backgroundColor: themeProvider.cardBackground,
         elevation: 0,
       ),

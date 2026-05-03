@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 class AdHelper {
-  // AdMob App ID: ca-app-pub-3422720384917984~6782469458
+  // AdMob App ID (AndroidManifest / Info.plist): ca-app-pub-3922595204055302~8520573756
   
   // Set to true to use test ads, false for production
   // NOTE: Currently using test ads because production ad unit ID is not configured as Native format
@@ -25,9 +25,9 @@ class AdHelper {
     }
     
     if (Platform.isAndroid) {
-      return 'ca-app-pub-3422720384917984/3355000965';
+      return 'ca-app-pub-3922595204055302/4582793784';
     } else if (Platform.isIOS) {
-      return 'ca-app-pub-3422720384917984/3355000965';
+      return 'ca-app-pub-3922595204055302/4582793784';
     } else {
       throw UnsupportedError('Unsupported platform');
     }
